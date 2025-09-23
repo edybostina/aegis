@@ -37,14 +37,16 @@ namespace aegis
                       const std::filesystem::path &out,
                       const std::string &passphrase,
                       const KdfParams &params,
-                      const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override = {});
+                      const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override = {},
+                      bool keyfile_used = false);
 
     // Decrypt a file created by encrypt_file()
     void decrypt_file(const std::filesystem::path &in,
                       const std::filesystem::path &out,
                       const std::string &passphrase,
                       const KdfParams &params,
-                      const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override = {});
+                      const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override = {},
+                      bool keyfile_used = false);
 
     // Generate a new random key file
     void generate_key_file(const std::filesystem::path &keyfile);

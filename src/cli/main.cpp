@@ -20,29 +20,43 @@ static void usage()
     std::cout << "If -p is omitted, you will be prompted (input hidden).\n";
 }
 
+
+static void handle_basic_cases(int argc, char **argv) {
+    if (argc <= 2) {
+        if (argc == 2 && (std::string(argv[1]) == "-h" || std::string(argv[1]) == "--help")) {
+            usage();
+            exit(0);
+        }
+        if (argc == 2 && std::string(argv[1]) == "--version") {
+            std::cout << "Aegis version 0.1\n";
+            exit(0);
+        }
+        usage();
+        exit(1);
+    }
+}
+
+static void handle_mode_type(const std::string &mode) {
+    if (mode != "enc" && mode != "dec" && mode != "keygen") {
+        usage();
+        exit(1);
+    }
+}
+
 int main(int argc, char **argv)
 {
     try
     {
-        if (argc <= 2)
-        {
-            if (argc == 2 && (std::string(argv[1]) == "-h" || std::string(argv[1]) == "--help"))
-            {
-                usage();
-                return 0;
-            }
-            if (argc == 2 && std::string(argv[1]) == "--version")
-            {
-                std::cout << "Aegis version 0.1\n";
-                return 0;
-            }
-            usage();
-            return 1;
-        }
+        handle_basic_cases(argc, argv);
+
         std::string mode = argv[1];
+        handle_mode_type(mode);
+
         std::string in, out, pass;
         std::array<unsigned char, crypto_secretbox_KEYBYTES> key_override = {};
+        bool keyfile_used = false;
 
+        // pretty messy argument parsing, but it works for now
         for (int i = 2; i < argc; ++i)
         {
             std::string a = argv[i];
@@ -67,6 +81,7 @@ int main(int argc, char **argv)
                     if (pass.size() != crypto_secretbox_KEYBYTES)
                         throw std::runtime_error("Invalid key file size");
                     std::memcpy(key_override.data(), pass.data(), crypto_secretbox_KEYBYTES);
+                    keyfile_used = true;
                     pass.clear(); // clear pass to avoid confusion
                 }
             else
@@ -106,17 +121,17 @@ int main(int argc, char **argv)
 
         init_crypto();
         KdfParams params{crypto_pwhash_OPSLIMIT_INTERACTIVE, crypto_pwhash_MEMLIMIT_INTERACTIVE};
-        if (pass.empty() && utils::key_override_provided(key_override) == false)
+        if (pass.empty() && !keyfile_used)
             pass = utils::prompt_line("Passphrase: ", false); // hide the input
 
         if (mode == "enc")
         {
-            encrypt_file(in, out, pass, params, key_override);
+            encrypt_file(in, out, pass, params, key_override, keyfile_used);
             std::cout << "Encrypted -> " << out << "\n";
         }
         else if (mode == "dec")
         {
-            decrypt_file(in, out, pass, params, key_override);
+            decrypt_file(in, out, pass, params, key_override, keyfile_used);
             std::cout << "Decrypted -> " << out << "\n";
         }
         else

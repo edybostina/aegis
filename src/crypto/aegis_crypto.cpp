@@ -58,7 +58,8 @@ namespace aegis
                       const std::filesystem::path &out,
                       const std::string &passphrase,
                       const KdfParams &params,
-                      const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override)
+                      const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override,
+                      bool keyfile_used)
     {
         int fd_in = io::open_readonly(in);
         int fd_out = io::open_readwrite(out);
@@ -69,9 +70,10 @@ namespace aegis
         io::write_all(fd_out, &VERSION, 1);
 
         std::array<unsigned char, 16> salt{};
-        auto key = utils::key_override_provided(key_override)
+        auto key = keyfile_used
                        ? key_override
                        : derive_key_from_passphrase_enc(passphrase, salt, params);
+
         io::write_all(fd_out, salt.data(), salt.size());
 
         crypto_secretstream_xchacha20poly1305_state state{};
@@ -107,7 +109,8 @@ namespace aegis
                       const std::filesystem::path &out,
                       const std::string &passphrase,
                       const KdfParams &params,
-                      const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override)
+                      const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override,
+                      bool keyfile_used)
     {
         int fd_in = io::open_readonly(in);
         int fd_out = io::open_readwrite(out);
@@ -128,7 +131,7 @@ namespace aegis
             throw std::runtime_error("Truncated salt");
         std::memcpy(salt.data(), saltv.data(), salt.size());
 
-        std::array<unsigned char, crypto_secretbox_KEYBYTES> key = utils::key_override_provided(key_override)
+        std::array<unsigned char, crypto_secretbox_KEYBYTES> key = keyfile_used
                                                                       ? key_override
                                                                       : derive_key_from_passphrase_dec(passphrase, salt, params);
 
