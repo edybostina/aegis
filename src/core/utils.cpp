@@ -15,6 +15,15 @@ namespace aegis::utils
         return std::filesystem::exists(p);
     }
 
+    bool key_override_provided(const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override) {
+        for (unsigned char byte : key_override) {
+            if (byte != 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     static std::string prompt_hidden(const std::string &label)
     {
         std::cerr << label;

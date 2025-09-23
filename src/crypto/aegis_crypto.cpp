@@ -1,6 +1,6 @@
 #include "../../include/aegis/aegis_crypto.hpp"
 #include "../../include/aegis/file_io.hpp"
-#include <sodium.h>
+#include "../../include/aegis/utils.hpp"
 #include <array>
 #include <vector>
 #include <stdexcept>
@@ -57,7 +57,8 @@ namespace aegis
     void encrypt_file(const std::filesystem::path &in,
                       const std::filesystem::path &out,
                       const std::string &passphrase,
-                      const KdfParams &params)
+                      const KdfParams &params,
+                      const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override)
     {
         int fd_in = io::open_readonly(in);
         int fd_out = io::open_readwrite(out);
@@ -68,7 +69,9 @@ namespace aegis
         io::write_all(fd_out, &VERSION, 1);
 
         std::array<unsigned char, 16> salt{};
-        auto key = derive_key_from_passphrase_enc(passphrase, salt, params);
+        auto key = utils::key_override_provided(key_override)
+                       ? key_override
+                       : derive_key_from_passphrase_enc(passphrase, salt, params);
         io::write_all(fd_out, salt.data(), salt.size());
 
         crypto_secretstream_xchacha20poly1305_state state{};
@@ -103,7 +106,8 @@ namespace aegis
     void decrypt_file(const std::filesystem::path &in,
                       const std::filesystem::path &out,
                       const std::string &passphrase,
-                      const KdfParams &params)
+                      const KdfParams &params,
+                      const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override)
     {
         int fd_in = io::open_readonly(in);
         int fd_out = io::open_readwrite(out);
@@ -124,7 +128,9 @@ namespace aegis
             throw std::runtime_error("Truncated salt");
         std::memcpy(salt.data(), saltv.data(), salt.size());
 
-        std::array<unsigned char, 32> key = derive_key_from_passphrase_dec(passphrase, salt, params);
+        std::array<unsigned char, crypto_secretbox_KEYBYTES> key = utils::key_override_provided(key_override)
+                                                                      ? key_override
+                                                                      : derive_key_from_passphrase_dec(passphrase, salt, params);
 
         std::array<unsigned char, crypto_secretstream_xchacha20poly1305_HEADERBYTES> header{};
         auto hv = io::read_chunk(fd_in, header.size());
@@ -156,6 +162,15 @@ namespace aegis
         }
         close(fd_in);
         close(fd_out);
+    }
+
+    void generate_key_file(const std::filesystem::path &keyfile)
+    {
+        int fd = io::open_readwrite(keyfile);
+        std::array<unsigned char, crypto_secretbox_KEYBYTES> key{};
+        randombytes_buf(key.data(), key.size());
+        io::write_all(fd, key.data(), key.size());
+        close(fd);
     }
 
 }
