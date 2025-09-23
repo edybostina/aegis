@@ -11,11 +11,12 @@ static void usage()
 {
     std::cout << "Aegis v0.1 — file encryption (XChaCha20-Poly1305 via libsodium)\n";
     std::cout << "Usage:\n";
-    std::cout << " aegis -h | --help\n";
     std::cout << " aegis enc -i <input> -o <output> [-p <passphrase> or -k <key_file>]\n";
     std::cout << " aegis dec -i <input> -o <output> [-p <passphrase> or -k <key_file>]\n";
     std::cout << " aegis keygen -o <key_file>\n";
     // std::cout << " aegis verify -i <input> [-p <passphrase> or -k <key_file>]\n"; // future
+    std::cout << " aegis -h | --help\n";
+    std::cout << " aegis --version\n";
     std::cout << "If -p is omitted, you will be prompted (input hidden).\n";
 }
 
@@ -23,8 +24,18 @@ int main(int argc, char **argv)
 {
     try
     {
-        if (argc < 2)
+        if (argc <= 2)
         {
+            if (argc == 2 && (std::string(argv[1]) == "-h" || std::string(argv[1]) == "--help"))
+            {
+                usage();
+                return 0;
+            }
+            if (argc == 2 && std::string(argv[1]) == "--version")
+            {
+                std::cout << "Aegis version 0.1\n";
+                return 0;
+            }
             usage();
             return 1;
         }
@@ -58,7 +69,7 @@ int main(int argc, char **argv)
                     std::memcpy(key_override.data(), pass.data(), crypto_secretbox_KEYBYTES);
                     pass.clear(); // clear pass to avoid confusion
                 }
-            else if (a == "-h" || a == "--help")
+            else
             {
                 usage();
                 return 0;
