@@ -48,6 +48,7 @@ namespace aegis
                       const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override = {},
                       bool keyfile_used = false);
 
+    
     // Generate a new random key file
     void generate_key_file(const std::filesystem::path &keyfile);
 

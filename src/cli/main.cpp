@@ -14,20 +14,23 @@ static void usage()
     std::cout << " aegis enc -i <input> -o <output> [-p <passphrase> or -k <key_file>]\n";
     std::cout << " aegis dec -i <input> -o <output> [-p <passphrase> or -k <key_file>]\n";
     std::cout << " aegis keygen -o <key_file>\n";
-    // std::cout << " aegis verify -i <input> [-p <passphrase> or -k <key_file>]\n"; // future
+    // std::cout << " aegis verify -i <input> [-p <passphrase> or -k <key_file>]\n";
     std::cout << " aegis -h | --help\n";
     std::cout << " aegis --version\n";
     std::cout << "If -p is omitted, you will be prompted (input hidden).\n";
 }
 
-
-static void handle_basic_cases(int argc, char **argv) {
-    if (argc <= 2) {
-        if (argc == 2 && (std::string(argv[1]) == "-h" || std::string(argv[1]) == "--help")) {
+static void handle_basic_cases(int argc, char **argv)
+{
+    if (argc <= 2)
+    {
+        if (argc == 2 && (std::string(argv[1]) == "-h" || std::string(argv[1]) == "--help"))
+        {
             usage();
             exit(0);
         }
-        if (argc == 2 && std::string(argv[1]) == "--version") {
+        if (argc == 2 && std::string(argv[1]) == "--version")
+        {
             std::cout << "Aegis version 0.1\n";
             exit(0);
         }
@@ -36,11 +39,16 @@ static void handle_basic_cases(int argc, char **argv) {
     }
 }
 
-static void handle_mode_type(const std::string &mode) {
-    if (mode != "enc" && mode != "dec" && mode != "keygen") {
+static void handle_mode_type(const std::string &mode)
+{
+    static const std::string modes[] = {"enc", "dec", "keygen"};
+    if (std::find(std::begin(modes), std::end(modes), mode) == std::end(modes))
+    {
         usage();
         exit(1);
     }
+
+   
 }
 
 int main(int argc, char **argv)
@@ -48,7 +56,6 @@ int main(int argc, char **argv)
     try
     {
         handle_basic_cases(argc, argv);
-
         std::string mode = argv[1];
         handle_mode_type(mode);
 
@@ -56,89 +63,103 @@ int main(int argc, char **argv)
         std::array<unsigned char, crypto_secretbox_KEYBYTES> key_override = {};
         bool keyfile_used = false;
 
-        // pretty messy argument parsing, but it works for now
         for (int i = 2; i < argc; ++i)
         {
-            std::string a = argv[i];
-            if (a == "-i" && i + 1 < argc)
-                in = argv[++i];
-            else if (a == "-o" && i + 1 < argc)
-                out = argv[++i];
-            else if ((a == "-p" || a == "-k") && (i + 1 < argc))
-                if (a == "-p")
-                    pass = argv[++i];
-                else
-                {
-                    std::string keyfile = argv[++i];
-                    std::cout << "Using key file: " << keyfile << "\n";
-                    if (!utils::file_exists(keyfile))
-                        throw std::runtime_error("Key file does not exist");
-                    std::ifstream kf(keyfile);
-                    if (!kf)
-                        throw std::runtime_error("Failed to open key file");
-                    std::getline(kf, pass);
-                    kf.close();
-                    if (pass.size() != crypto_secretbox_KEYBYTES)
-                        throw std::runtime_error("Invalid key file size");
-                    std::memcpy(key_override.data(), pass.data(), crypto_secretbox_KEYBYTES);
-                    keyfile_used = true;
-                    pass.clear(); // clear pass to avoid confusion
-                }
-            else
+            std::string arg = argv[i];
+            if (arg == "-i" && i + 1 < argc)
             {
-                usage();
-                return 0;
+                in = argv[++i];
             }
-        }
-
-        if (mode == "keygen")
-        {
-            std::string keyfile = out;
-            if (keyfile.empty())
+            else if (arg == "-o" && i + 1 < argc)
+            {
+                out = argv[++i];
+            }
+            else if (arg == "-p" && i + 1 < argc)
+            {
+                pass = argv[++i];
+            }
+            else if (arg == "-k" && i + 1 < argc)
+            {
+                std::string keyfile = argv[++i];
+                if (!utils::file_exists(keyfile))
+                {
+                    std::cerr << "Key file does not exist: " << keyfile << "\n";
+                    return 1;
+                }
+                std::ifstream kf(keyfile, std::ios::binary);
+                kf.read(reinterpret_cast<char *>(key_override.data()), key_override.size());
+                if (!kf || kf.gcount() != static_cast<std::streamsize>(key_override.size()))
+                {
+                    std::cerr << "Failed to read key file or invalid size: " << keyfile << "\n";
+                    return 1;
+                }
+                keyfile_used = true;
+            }
+            else
             {
                 usage();
                 return 1;
             }
-            if (utils::file_exists(keyfile))
-            {
-                std::string resp = utils::prompt_line("Key file exists. Overwrite? (y/N): ", true);
-                if (resp != "y" && resp != "Y")
-                {
-                    std::cout << "Aborted.\n";
-                    return 0;
-                }
-            }
-            generate_key_file(keyfile);
-            std::cout << "Key file generated: " << keyfile << "\n";
-            return 0;
         }
 
-        if (in.empty() || out.empty())
+        if ((mode == "enc" || mode == "dec") && in.empty())
         {
-            usage();
+            std::cerr << "Input file is required for mode " << mode << "\n";
             return 1;
         }
-
-        init_crypto();
-        KdfParams params{crypto_pwhash_OPSLIMIT_INTERACTIVE, crypto_pwhash_MEMLIMIT_INTERACTIVE};
-        if (pass.empty() && !keyfile_used)
-            pass = utils::prompt_line("Passphrase: ", false); // hide the input
+        if ((mode == "enc" || mode == "dec") && out.empty())
+        {
+            std::cerr << "Output file is required for mode " << mode << "\n";
+            return 1;
+        }
+        if (!keyfile_used && pass.empty() && (mode == "enc" || mode == "dec"))
+        {
+            pass = utils::prompt_line("Enter passphrase: ", false);
+            if (pass.empty())
+            {
+                std::cerr << "Passphrase cannot be empty\n";
+                return 1;
+            }
+        }
+        aegis::init_crypto();
+        aegis::KdfParams kdf_params{crypto_pwhash_OPSLIMIT_INTERACTIVE, crypto_pwhash_MEMLIMIT_INTERACTIVE};
 
         if (mode == "enc")
         {
-            encrypt_file(in, out, pass, params, key_override, keyfile_used);
-            std::cout << "Encrypted -> " << out << "\n";
+            aegis::encrypt_file(in, out, pass, kdf_params, key_override, keyfile_used);
+            std::cout << "File encrypted successfully: " << out << "\n";
         }
         else if (mode == "dec")
         {
-            decrypt_file(in, out, pass, params, key_override, keyfile_used);
-            std::cout << "Decrypted -> " << out << "\n";
+            aegis::decrypt_file(in, out, pass, kdf_params, key_override, keyfile_used);
+            std::cout << "File decrypted successfully: " << out << "\n";
         }
-        else
+        else if (mode == "keygen")
         {
-            usage();
-            return 1;
+            if (out.empty())
+            {
+                std::cerr << "Output key file is required for keygen mode\n";
+                return 1;
+            }
+
+            if (utils::file_exists(out))
+            {
+                std::cout << "Key file already exists. Overwrite? (y/N): ";
+                std::string resp;
+                std::getline(std::cin, resp);
+                if (resp != "y" && resp != "Y")
+                {
+                    std::cout << "Aborting key generation.\n";
+                    return 0;
+                }
+                std::cout << "Overwriting key file: " << out << "\n";
+            }
+
+            aegis::generate_key_file(out);
+            std::cout << "Key file generated successfully: " << out << "\n";
+            return 0;
         }
+        
         return 0;
     }
     catch (const std::exception &e)

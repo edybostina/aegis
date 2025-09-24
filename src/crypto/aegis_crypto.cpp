@@ -132,8 +132,8 @@ namespace aegis
         std::memcpy(salt.data(), saltv.data(), salt.size());
 
         std::array<unsigned char, crypto_secretbox_KEYBYTES> key = keyfile_used
-                                                                      ? key_override
-                                                                      : derive_key_from_passphrase_dec(passphrase, salt, params);
+                                                                       ? key_override
+                                                                       : derive_key_from_passphrase_dec(passphrase, salt, params);
 
         std::array<unsigned char, crypto_secretstream_xchacha20poly1305_HEADERBYTES> header{};
         auto hv = io::read_chunk(fd_in, header.size());
