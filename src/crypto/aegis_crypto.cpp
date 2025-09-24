@@ -12,7 +12,7 @@
 namespace
 {
     constexpr const char *MAGIC = "AEGIS\x00"; // 6 bytes, includes null sentinel
-    constexpr unsigned char VERSION = 1;
+    constexpr unsigned char VERSION = 2;
 }
 
 namespace aegis
@@ -23,13 +23,13 @@ namespace aegis
             throw std::runtime_error("libsodium initialization failed");
     }
 
-    std::array<unsigned char, 32> derive_key_from_passphrase_enc(
+    std::array<unsigned char, crypto_secretbox_KEYBYTES> derive_key_from_passphrase_enc(
         const std::string &passphrase,
         std::array<unsigned char, 16> &out_salt,
         const KdfParams &params)
     {
         randombytes_buf(out_salt.data(), out_salt.size());
-        std::array<unsigned char, 32> key{};
+        std::array<unsigned char, crypto_secretbox_KEYBYTES> key{};
         if (crypto_pwhash(key.data(), key.size(), passphrase.c_str(), passphrase.size(),
                           out_salt.data(), params.ops_limit, params.mem_limit,
                           crypto_pwhash_ALG_DEFAULT) != 0)
@@ -39,12 +39,12 @@ namespace aegis
         return key;
     }
 
-    std::array<unsigned char, 32> derive_key_from_passphrase_dec(
+    std::array<unsigned char, crypto_secretbox_KEYBYTES> derive_key_from_passphrase_dec(
         const std::string &passphrase,
         const std::array<unsigned char, 16> &salt,
         const KdfParams &params)
     {
-        std::array<unsigned char, 32> key{};
+        std::array<unsigned char, crypto_secretbox_KEYBYTES> key{};
         if (crypto_pwhash(key.data(), key.size(), passphrase.c_str(), passphrase.size(),
                           salt.data(), params.ops_limit, params.mem_limit,
                           crypto_pwhash_ALG_DEFAULT) != 0)

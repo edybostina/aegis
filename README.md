@@ -36,7 +36,7 @@ If -p is omitted, you will be prompted for a passphrase (input hidden).
 ## File Format
 
 - magic(6): 'AEGIS\x00'
-- version(1): 0x01
+- version(1): 0x02
 - salt(16): Argon2id salt
 - header(24): libsodium secretstream header
 - ciphertext: stream of AEAD-encrypted chunks

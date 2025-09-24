@@ -18,13 +18,13 @@ namespace aegis
 
     // Derive a 32-byte key from a passphrase using Argon2id with random salt.
     // Returns raw key bytes and writes salt to out parameter.
-    std::array<unsigned char, 32> derive_key_from_passphrase_enc(
+    std::array<unsigned char, crypto_secretbox_KEYBYTES> derive_key_from_passphrase_enc(
         const std::string &passphrase,
         std::array<unsigned char, 16> &out_salt,
         const KdfParams &params);
 
     // Derive a 32-byte key from a passphrase with a given salt (for decryption)
-    std::array<unsigned char, 32> derive_key_from_passphrase_dec(
+    std::array<unsigned char, crypto_secretbox_KEYBYTES> derive_key_from_passphrase_dec(
         const std::string &passphrase,
         const std::array<unsigned char, 16> &salt,
         const KdfParams &params);
