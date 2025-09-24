@@ -2,7 +2,7 @@
 
 An easy-to-use file encryption tool.
 
-Prereqs: CMake >= 3.16, a C++20 compiler, libsodium dev package.
+Prereqs: CMake >= 3.16, a C++17 compiler, libsodium dev package.
 
 - Ubuntu/Debian: sudo apt-get install libsodium-dev cmake g++
 - macOS (Homebrew): brew install libsodium cmake
