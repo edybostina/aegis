@@ -48,7 +48,13 @@ namespace aegis
                       const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override = {},
                       bool keyfile_used = false);
 
-    
+    // Verify if the file can be decrypted with the given passphrase/key
+    bool verify_file(const std::filesystem::path &in,
+                     const std::string &passphrase,
+                     const KdfParams &params,
+                     const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override = {},
+                     bool keyfile_used = false);
+
     // Generate a new random key file
     void generate_key_file(const std::filesystem::path &keyfile);
 

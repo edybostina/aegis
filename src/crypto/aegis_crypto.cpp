@@ -167,6 +167,66 @@ namespace aegis
         close(fd_out);
     }
 
+    bool verify_file(const std::filesystem::path &in,
+                     const std::string &passphrase,
+                     const KdfParams &params,
+                     const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override,
+                     bool keyfile_used)
+    {
+        // Same as decrypt_file but without writing output
+        int fd_in = io::open_readonly(in);
+
+        // Read header
+        std::array<unsigned char, 6> magic{};
+        auto m = io::read_chunk(fd_in, magic.size());
+        if (m.size() != magic.size() || std::memcmp(m.data(), MAGIC, 6) != 0)
+            throw std::runtime_error("Not an Aegis file (bad magic)");
+
+        auto ver = io::read_chunk(fd_in, 1);
+        if (ver.size() != 1 || ver[0] != VERSION)
+            throw std::runtime_error("Unsupported Aegis version");
+
+        std::array<unsigned char, 16> salt{};
+        auto saltv = io::read_chunk(fd_in, salt.size());
+        if (saltv.size() != salt.size())
+            throw std::runtime_error("Truncated salt");
+        std::memcpy(salt.data(), saltv.data(), salt.size());
+
+        std::array<unsigned char, crypto_secretbox_KEYBYTES> key = keyfile_used
+                                                                       ? key_override
+                                                                       : derive_key_from_passphrase_dec(passphrase, salt, params);
+
+        std::array<unsigned char, crypto_secretstream_xchacha20poly1305_HEADERBYTES> header{};
+        auto hv = io::read_chunk(fd_in, header.size());
+        if (hv.size() != header.size())
+            throw std::runtime_error("Truncated header");
+        std::memcpy(header.data(), hv.data(), header.size());
+
+        crypto_secretstream_xchacha20poly1305_state state{};
+        if (crypto_secretstream_xchacha20poly1305_init_pull(&state, header.data(), key.data()) != 0)
+            throw std::runtime_error("secretstream init_pull failed");
+        sodium_memzero(key.data(), key.size());
+
+        const size_t CHUNK = 64 * 1024 + crypto_secretstream_xchacha20poly1305_ABYTES;
+        bool done = false;
+        while (!done)
+        {
+            std::vector<unsigned char> enc = io::read_chunk(fd_in, CHUNK);
+            if (enc.empty())
+                break; // graceful end
+            std::vector<unsigned char> outbuf(enc.size());
+            unsigned long long outlen = 0ULL;
+            unsigned char tag = 0;
+            if (crypto_secretstream_xchacha20poly1305_pull(&state, outbuf.data(), &outlen, &tag,
+                                                           enc.data(), enc.size(), nullptr, 0) != 0)
+                return false; // Decryption failed (corrupt or wrong passphrase)
+            if (tag == crypto_secretstream_xchacha20poly1305_TAG_FINAL)
+                done = true;
+        }
+        close(fd_in);
+        return true;
+    }
+
     void generate_key_file(const std::filesystem::path &keyfile)
     {
         int fd = io::open_readwrite(keyfile);

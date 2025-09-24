@@ -14,7 +14,7 @@ static void usage()
     std::cout << " aegis enc -i <input> -o <output> [-p <passphrase> or -k <key_file>]\n";
     std::cout << " aegis dec -i <input> -o <output> [-p <passphrase> or -k <key_file>]\n";
     std::cout << " aegis keygen -o <key_file>\n";
-    // std::cout << " aegis verify -i <input> [-p <passphrase> or -k <key_file>]\n";
+    std::cout << " aegis verify -i <input> [-p <passphrase> or -k <key_file>]\n";
     std::cout << " aegis -h | --help\n";
     std::cout << " aegis --version\n";
     std::cout << "If -p is omitted, you will be prompted (input hidden).\n";
@@ -41,7 +41,7 @@ static void handle_basic_cases(int argc, char **argv)
 
 static void handle_mode_type(const std::string &mode)
 {
-    static const std::string modes[] = {"enc", "dec", "keygen"};
+    static const std::string modes[] = {"enc", "dec", "keygen", "verify"};
     if (std::find(std::begin(modes), std::end(modes), mode) == std::end(modes))
     {
         usage();
@@ -158,6 +158,15 @@ int main(int argc, char **argv)
             aegis::generate_key_file(out);
             std::cout << "Key file generated successfully: " << out << "\n";
             return 0;
+        }
+        else if (mode == "verify")
+        {
+            bool valid = aegis::verify_file(in, pass, kdf_params, key_override, keyfile_used);
+            if (valid)
+                std::cout << "File integrity verified successfully.\n";
+            else
+                std::cout << "File integrity verification failed (corrupt or wrong passphrase/key).\n";
+            return valid ? 0 : 3;
         }
         
         return 0;
