@@ -41,14 +41,12 @@ static void handle_basic_cases(int argc, char **argv)
 
 static void handle_mode_type(const std::string &mode)
 {
-    static const std::string modes[] = {"enc", "dec", "keygen", "verify"};
+    const std::array<std::string, 4> modes = {"enc", "dec", "keygen", "verify"};
     if (std::find(std::begin(modes), std::end(modes), mode) == std::end(modes))
     {
         usage();
         exit(1);
     }
-
-   
 }
 
 int main(int argc, char **argv)
@@ -168,7 +166,7 @@ int main(int argc, char **argv)
                 std::cout << "File integrity verification failed (corrupt or wrong passphrase/key).\n";
             return valid ? 0 : 3;
         }
-        
+
         return 0;
     }
     catch (const std::exception &e)

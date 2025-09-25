@@ -16,7 +16,7 @@ int main()
     f << "hello aegis";
     f.close();
 
-    std::array<unsigned char, crypto_secretbox_KEYBYTES> empty_key{};
+    std::array<unsigned char, 32> empty_key{};
     bool keyfile_used = false;
 
     encrypt_file("/tmp/aegis_in.txt", "/tmp/aegis_in.txt.enc", pass, params, empty_key, keyfile_used);
