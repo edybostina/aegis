@@ -31,7 +31,20 @@ To decrypt a file:
 ./aegis dec -i secret.txt.aegis -o secret.txt
 ```
 
+To verify a file (decrypts in memory, no output):
+
+```bash
+./aegis verify -i secret.txt.aegis
+```
+
+All of the above commands support `-p passphrase` to provide a passphrase on the command line.
 If -p is omitted, you will be prompted for a passphrase (input hidden).
+
+To generate a random key and save it to a file:
+
+```bash
+./aegis genkey -o keyfile
+```
 
 ## File Format
 
