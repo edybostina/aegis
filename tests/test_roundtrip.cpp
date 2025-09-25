@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <sodium.h>
 #include <iostream>
+#include <array>
 
 int main()
 {
