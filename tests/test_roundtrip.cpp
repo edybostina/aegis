@@ -16,8 +16,11 @@ int main()
     f << "hello aegis";
     f.close();
 
-    encrypt_file("/tmp/aegis_in.txt", "/tmp/aegis_in.txt.enc", pass, params);
-    decrypt_file("/tmp/aegis_in.txt.enc", "/tmp/aegis_out.txt", pass, params);
+    std::array<unsigned char, crypto_secretbox_KEYBYTES> empty_key{};
+    bool keyfile_used = false;
+
+    encrypt_file("/tmp/aegis_in.txt", "/tmp/aegis_in.txt.enc", pass, params, empty_key, keyfile_used);
+    decrypt_file("/tmp/aegis_in.txt.enc", "/tmp/aegis_out.txt", pass, params, empty_key, keyfile_used);
 
     std::ifstream g("/tmp/aegis_out.txt");
     std::string out;
