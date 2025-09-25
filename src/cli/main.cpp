@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include <sodium.h>
+#include <algorithm>
 
 using namespace aegis;
 
