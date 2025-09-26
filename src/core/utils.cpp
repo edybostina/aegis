@@ -66,20 +66,20 @@ namespace aegis::utils
     void progress_bar(int percent, const std::string &prefix, const std::string &suffix)
     {
         const int barWidth = 50;
-        std::cerr << "\r" << prefix << " [";
+        std::cout << "\r" << prefix << " [";
         int pos = barWidth * percent / 100;
         for (int i = 0; i < barWidth; ++i)
         {
             if (i < pos)
-                std::cerr << "=";
+                std::cout << "=";
             else if (i == pos)
-                std::cerr << ">";
+                std::cout << ">";
             else
-                std::cerr << " ";
+                std::cout << " ";
         }
-        std::cerr << "] " << percent << "% " << suffix;
-        std::cerr.flush();
+        std::cout << "] " << percent << "% " << suffix;
+        std::cout.flush();
         if (percent >= 100)
-            std::cerr << "\n";
+            std::cout << "\n";
     }
 }
