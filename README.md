@@ -1,6 +1,7 @@
 # Aegis
 
 ![Build](https://github.com/edybostina/aegis/actions/workflows/build.yml/badge.svg)
+![License](https://img.shields.io/github/license/edybostina/aegis)
 
 An easy-to-use file encryption tool.
 
