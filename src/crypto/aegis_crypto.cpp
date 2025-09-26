@@ -86,6 +86,9 @@ namespace aegis
 
         const size_t CHUNK = 64 * 1024;
         std::vector<unsigned char> buf;
+
+        const size_t total_size_estimate = std::filesystem::file_size(in);
+        size_t current_encrypted_size = 0;
         while (true)
         {
             buf = io::read_chunk(fd_in, CHUNK);
@@ -100,7 +103,16 @@ namespace aegis
                                                            buf.data(), buf.size(), nullptr, 0, tag) != 0)
                 throw std::runtime_error("secretstream push failed");
             io::write_all(fd_out, outbuf.data(), static_cast<size_t>(outlen));
+            current_encrypted_size += static_cast<size_t>(outlen);
+            // print progress
+            if (total_size_estimate > 0)
+            {
+                int percent = static_cast<int>(100.0 * current_encrypted_size / total_size_estimate);
+                percent = std::min(percent, 99); // cap at 99%
+                utils::progress_bar(percent, "Encrypting:", "");
+            }
         }
+        utils::progress_bar(100, "Encrypting:", ""); // ensure 100% at end
         close(fd_in);
         close(fd_out);
     }
@@ -148,6 +160,9 @@ namespace aegis
 
         const size_t CHUNK = 64 * 1024 + crypto_secretstream_xchacha20poly1305_ABYTES;
         bool done = false;
+
+        const size_t total_size_estimate = std::filesystem::file_size(in);
+        size_t current_decrypted_size = 0;
         while (!done)
         {
             std::vector<unsigned char> enc = io::read_chunk(fd_in, CHUNK);
@@ -162,7 +177,17 @@ namespace aegis
             if (tag == crypto_secretstream_xchacha20poly1305_TAG_FINAL)
                 done = true;
             io::write_all(fd_out, outbuf.data(), static_cast<size_t>(outlen));
+            current_decrypted_size += static_cast<size_t>(outlen);
+            // print progress
+            if (total_size_estimate > 0)
+            {
+                int percent = static_cast<int>(100.0 * current_decrypted_size / total_size_estimate);
+                percent = std::min(percent, 99); // cap at 99%
+                utils::progress_bar(percent, "Decrypting:", "");
+            }
         }
+        utils::progress_bar(100, "Decrypting:", ""); // ensure 100% at end
+
         close(fd_in);
         close(fd_out);
     }
@@ -209,6 +234,8 @@ namespace aegis
 
         const size_t CHUNK = 64 * 1024 + crypto_secretstream_xchacha20poly1305_ABYTES;
         bool done = false;
+        size_t current_decrypted_size = 0;
+        const size_t total_size_estimate = std::filesystem::file_size(in);
         while (!done)
         {
             std::vector<unsigned char> enc = io::read_chunk(fd_in, CHUNK);
@@ -222,7 +249,17 @@ namespace aegis
                 return false; // Decryption failed (corrupt or wrong passphrase)
             if (tag == crypto_secretstream_xchacha20poly1305_TAG_FINAL)
                 done = true;
+
+            current_decrypted_size += static_cast<size_t>(outlen);
+            // print progress
+            if (total_size_estimate > 0)
+            {
+                int percent = static_cast<int>(100.0 * current_decrypted_size / total_size_estimate);
+                percent = std::min(percent, 99); // cap at 99%
+                utils::progress_bar(percent, "Verifying:", "");
+            }
         }
+        utils::progress_bar(100, "Verifying:", ""); // ensure 100% at end
         close(fd_in);
         return true;
     }
