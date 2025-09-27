@@ -10,7 +10,7 @@ using namespace aegis;
 
 static void usage()
 {
-    std::cout << "Aegis v0.2 — file encryption (XChaCha20-Poly1305 via libsodium)\n";
+    std::cout << "Aegis v0.3 — file encryption (XChaCha20-Poly1305 via libsodium)\n";
     std::cout << "Usage:\n";
     std::cout << " aegis enc -i <input> -o <output> [-p <passphrase> or -k <key_file>]\n";
     std::cout << " aegis dec -i <input> -o <output> [-p <passphrase> or -k <key_file>]\n";
@@ -32,7 +32,7 @@ static void handle_basic_cases(int argc, char **argv)
         }
         if (argc == 2 && std::string(argv[1]) == "--version")
         {
-            std::cout << "Aegis version 0.2\n";
+            std::cout << "Aegis version 0.3\n";
             exit(0);
         }
         usage();
