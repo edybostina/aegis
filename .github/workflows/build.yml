@@ -2,9 +2,9 @@ name: Build and Test
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
@@ -25,7 +25,7 @@ jobs:
 
       - name: Install libsodium (macOS)
         if: matrix.os == 'macos-latest'
-        run: brew install libsodium cmake
+        run: brew install libsodium cmake zlib
 
       # Configure and build
       - name: Configure CMake
