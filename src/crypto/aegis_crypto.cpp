@@ -9,11 +9,6 @@
 #include <unistd.h>
 #include <iostream>
 
-namespace
-{
-    constexpr const char *MAGIC = "AEGIS\x00"; // 6 bytes, includes null sentinel
-    constexpr unsigned char VERSION = 3;
-}
 
 namespace aegis
 {
@@ -262,6 +257,105 @@ namespace aegis
         utils::progress_bar(100, "Verifying:", ""); // ensure 100% at end
         close(fd_in);
         return true;
+    }
+
+    void compress_file(const std::filesystem::path &in, const std::filesystem::path &out)
+    {
+        int fd_in = io::open_readonly(in);
+        int fd_out = io::open_readwrite(out);
+
+        const size_t CHUNK = 64 * 1024;
+        std::vector<unsigned char> inbuf(CHUNK);
+        std::vector<unsigned char> outbuf(compressBound(CHUNK));
+
+        z_stream strm{};
+        if (deflateInit(&strm, Z_DEFAULT_COMPRESSION) != Z_OK)
+            throw std::runtime_error("deflateInit failed");
+
+        while (true)
+        {
+            auto r = io::read_chunk(fd_in, CHUNK);
+            if (r.empty())
+                break;
+            strm.avail_in = r.size();
+            strm.next_in = r.data();
+
+            do
+            {
+                strm.avail_out = outbuf.size();
+                strm.next_out = outbuf.data();
+                if (deflate(&strm, Z_NO_FLUSH) == Z_STREAM_ERROR)
+                {
+                    deflateEnd(&strm);
+                    throw std::runtime_error("deflate failed");
+                }
+                size_t have = outbuf.size() - strm.avail_out;
+                if (have > 0)
+                    io::write_all(fd_out, outbuf.data(), have);
+            } while (strm.avail_out == 0);
+        }
+
+        // finish compression
+        int ret;
+        do
+        {
+            strm.avail_out = outbuf.size();
+            strm.next_out = outbuf.data();
+            ret = deflate(&strm, Z_FINISH);
+            if (ret == Z_STREAM_ERROR)
+            {
+                deflateEnd(&strm);
+                throw std::runtime_error("deflate finish failed");
+            }
+            size_t have = outbuf.size() - strm.avail_out;
+            if (have > 0)
+                io::write_all(fd_out, outbuf.data(), have);
+        } while (ret != Z_STREAM_END);
+
+        deflateEnd(&strm);
+        close(fd_in);
+        close(fd_out);
+    }
+
+    void decompress_file(const std::filesystem::path &in, const std::filesystem::path &out)
+    {
+        int fd_in = io::open_readonly(in);
+        int fd_out = io::open_readwrite(out);
+
+        const size_t CHUNK = 64 * 1024;
+        std::vector<unsigned char> inbuf(CHUNK);
+        std::vector<unsigned char> outbuf(CHUNK);
+
+        z_stream strm{};
+        if (inflateInit(&strm) != Z_OK)
+            throw std::runtime_error("inflateInit failed");
+
+        while (true)
+        {
+            auto r = io::read_chunk(fd_in, CHUNK);
+            if (r.empty())
+                break;
+            strm.avail_in = r.size();
+            strm.next_in = r.data();
+
+            do
+            {
+                strm.avail_out = outbuf.size();
+                strm.next_out = outbuf.data();
+                if (inflate(&strm, Z_NO_FLUSH) == Z_STREAM_ERROR)
+                {
+                    inflateEnd(&strm);
+                    throw std::runtime_error("inflate failed");
+                }
+                size_t have = outbuf.size() - strm.avail_out;
+                if (have > 0)
+                    io::write_all(fd_out, outbuf.data(), have);
+            } while (strm.avail_out == 0);
+        }
+
+        inflateEnd(&strm);
+        close(fd_in);
+        close(fd_out);
     }
 
     void generate_key_file(const std::filesystem::path &keyfile)

@@ -10,15 +10,26 @@ using namespace aegis;
 
 static void usage()
 {
-    std::cout << "Aegis v0.3 — file encryption (XChaCha20-Poly1305 via libsodium)\n";
+    std::cout << "Aegis v0." << (int)VERSION << " — file encryption (XChaCha20-Poly1305 via libsodium)\n";
     std::cout << "Usage:\n";
-    std::cout << " aegis enc -i <input> -o <output> [-p <passphrase> or -k <key_file>]\n";
-    std::cout << " aegis dec -i <input> -o <output> [-p <passphrase> or -k <key_file>]\n";
-    std::cout << " aegis keygen -o <key_file>\n";
-    std::cout << " aegis verify -i <input> [-p <passphrase> or -k <key_file>]\n";
-    std::cout << " aegis -h | --help\n";
-    std::cout << " aegis --version\n";
-    std::cout << "If -p is omitted, you will be prompted (input hidden).\n";
+    std::cout << "  aegis <mode> [options]\n";
+    std::cout << "Modes:\n";
+    std::cout << "  enc      Encrypt a file\n";
+    std::cout << "  dec      Decrypt a file\n";
+    std::cout << "  keygen   Generate a random key file\n";
+    std::cout << "  verify   Verify integrity of an encrypted file\n";
+    std::cout << "Options:\n";
+    std::cout << "  -i <file>    Input file (required for enc/dec/verify)\n";
+    std::cout << "  -o <file>    Output file (required for enc/dec/keygen)\n";
+    std::cout << "  -p <pass>    Passphrase (if omitted, will prompt; not needed if -k is used)\n";
+    std::cout << "  -k <file>    Key file (32 random bytes; if used, -p is not needed)\n";
+    std::cout << "  -z           Compress/Decompress file (before encryption / after decryption)\n";
+    std::cout << "  -h, --help   Show this help message\n";
+    std::cout << "  --version    Show version information\n";
+    std::cout << "Exit codes:\n";
+    std::cout << "  0   Success\n";
+    std::cout << "  1   Invalid usage or arguments\n";
+    std::cout << "  2   Runtime error (e.g. file I/O error, decryption failed)\n";
 }
 
 static void handle_basic_cases(int argc, char **argv)
@@ -32,7 +43,7 @@ static void handle_basic_cases(int argc, char **argv)
         }
         if (argc == 2 && std::string(argv[1]) == "--version")
         {
-            std::cout << "Aegis version 0.3\n";
+            std::cout << "Aegis version 0." << (int)VERSION << "\n";
             exit(0);
         }
         usage();
@@ -61,6 +72,7 @@ int main(int argc, char **argv)
         std::string in, out, pass;
         std::array<unsigned char, crypto_secretbox_KEYBYTES> key_override = {};
         bool keyfile_used = false;
+        bool compress = false;
 
         for (int i = 2; i < argc; ++i)
         {
@@ -94,6 +106,10 @@ int main(int argc, char **argv)
                 }
                 keyfile_used = true;
             }
+            else if (arg == "-z")
+            {
+                compress = true;
+            }
             else
             {
                 usage();
@@ -125,12 +141,32 @@ int main(int argc, char **argv)
 
         if (mode == "enc")
         {
-            aegis::encrypt_file(in, out, pass, kdf_params, key_override, keyfile_used);
+            if (compress)
+            {
+                std::string temp_compressed = out + ".compressed_tmp";
+                aegis::compress_file(in, temp_compressed);
+                aegis::encrypt_file(temp_compressed, out, pass, kdf_params, key_override, keyfile_used);
+                std::filesystem::remove(temp_compressed);
+            }
+            else
+            {
+                aegis::encrypt_file(in, out, pass, kdf_params, key_override, keyfile_used);
+            }
             std::cout << "File encrypted successfully: " << out << "\n";
         }
         else if (mode == "dec")
         {
-            aegis::decrypt_file(in, out, pass, kdf_params, key_override, keyfile_used);
+            if (compress)
+            {
+                std::string temp_decrypted = out + ".decrypted_tmp";
+                aegis::decrypt_file(in, temp_decrypted, pass, kdf_params, key_override, keyfile_used);
+                aegis::decompress_file(temp_decrypted, out);
+                std::filesystem::remove(temp_decrypted);
+            }
+            else
+            {
+                aegis::decrypt_file(in, out, pass, kdf_params, key_override, keyfile_used);
+            }
             std::cout << "File decrypted successfully: " << out << "\n";
         }
         else if (mode == "keygen")

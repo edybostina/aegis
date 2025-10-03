@@ -3,7 +3,15 @@
 #include <cstddef>
 #include <string>
 #include <filesystem>
+
 #include <sodium.h>
+#include <zlib.h>
+
+namespace
+{
+    constexpr const char *MAGIC = "AEGIS\x00"; // 6 bytes, includes null sentinel
+    constexpr unsigned char VERSION = 4;
+}
 
 namespace aegis
 {
@@ -54,6 +62,12 @@ namespace aegis
                      const KdfParams &params,
                      const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override,
                      bool keyfile_used = false);
+
+    // Compress file
+    void compress_file(const std::filesystem::path &in, const std::filesystem::path &out);
+
+    // Decompress file
+    void decompress_file(const std::filesystem::path &in, const std::filesystem::path &out);
 
     // Generate a new random key file
     void generate_key_file(const std::filesystem::path &keyfile);

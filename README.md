@@ -5,19 +5,20 @@
 
 An easy-to-use file encryption tool.
 
-Prereqs: CMake >= 3.12, a C++17 compiler, libsodium dev package.
+Prereqs: CMake >= 3.12, a C++17 compiler, libsodium dev package, zlib1g-dev.
 
-- Ubuntu/Debian: sudo apt-get install libsodium-dev cmake g++
-- macOS (Homebrew): brew install libsodium cmake
-- Windows (vcpkg): vcpkg install libsodium:x64-windows
+- Ubuntu/Debian: sudo apt-get install libsodium-dev cmake g++ zlib1g-dev
+- macOS (Homebrew): brew install libsodium cmake zlib
+- Windows (vcpkg): vcpkg install libsodium:x64-windows zlib:x64-windows
   then configure CMake toolchain to use vcpkg
 
 ## Build:
 
 ```bash
-mkdir build && cd build
-cmake ..
-cmake --build . --config Release
+git clone https://github.com/edybostina/aegis.git
+cd aegis
+chmod +x build.sh
+./build.sh
 ```
 
 ## Usage
@@ -49,10 +50,26 @@ To generate a random key and save it to a file:
 ./aegis genkey -o keyfile
 ```
 
+To use a key file for encryption/decryption instead of a passphrase, use `-k keyfile`:
+
+```bash
+./aegis enc -i secret.txt -o secret.txt.aegis -k keyfile
+./aegis dec -i secret.txt.aegis -o secret.txt -k keyfile
+``` 
+
+To compress data before encryption, use `-z`:
+
+```bash
+./aegis enc -i secret.txt -o secret.txt.aegis -z
+./aegis dec -i secret.txt.aegis -o secret.txt -z
+```
+When using compression, the `-z` flag must be specified for both encryption and decryption.
+If `-z` is not specified during decryption, you will get garbage output.
+
 ## File Format
 
 - magic(6): 'AEGIS\x00'
-- version(1): 0x02
+- version(1): 0x04
 - salt(16): Argon2id salt
 - header(24): libsodium secretstream header
 - ciphertext: stream of AEAD-encrypted chunks
