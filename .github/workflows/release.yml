@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to (re)release, e.g., v0.1.0"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -15,10 +21,14 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
+    env:
+      RELEASE_TAG: ${{ github.event.inputs.tag != '' && github.event.inputs.tag || github.ref_name }}
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
 
       - name: Install dependencies (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
@@ -50,7 +60,7 @@ jobs:
           # Determine OS and arch for naming
           if [[ "$RUNNER_OS" == "macOS" ]]; then OS_NAME=macos; else OS_NAME=linux; fi
           ARCH=$(uname -m)
-          VERSION=${GITHUB_REF_NAME:-dev}
+          VERSION=${RELEASE_TAG:-dev}
           TAR=dist/aegis-${VERSION}-${OS_NAME}-${ARCH}.tar.gz
           # Ensure archive has a top-level 'aegis' folder
           tar -C staging -czf "$TAR" aegis
@@ -72,6 +82,8 @@ jobs:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     needs: build
+    env:
+      RELEASE_TAG: ${{ github.event.inputs.tag != '' && github.event.inputs.tag || github.ref_name }}
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -79,12 +91,30 @@ jobs:
           path: release_assets
           merge-multiple: true
 
+      - name: Delete existing assets for this tag
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = process.env.RELEASE_TAG;
+            const {owner, repo} = context.repo;
+            try {
+              const rel = await github.rest.repos.getReleaseByTag({owner, repo, tag});
+              const assets = rel.data.assets || [];
+              for (const asset of assets) {
+                await github.rest.repos.deleteReleaseAsset({owner, repo, asset_id: asset.id});
+                core.info(`Deleted asset ${asset.name}`);
+              }
+            } catch (e) {
+              core.info(`No existing release found for tag ${tag} or unable to fetch. Proceeding.`);
+            }
+
       - name: List downloaded assets
         run: ls -l release_assets
 
       - name: Create Release and upload assets
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
           files: |
             release_assets/*.tar.gz
             release_assets/*.sha256
