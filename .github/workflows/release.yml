@@ -42,17 +42,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p dist package
-          cp build/aegis package/
-          cp LICENSE README.md package/
+          mkdir -p dist staging/aegis
+          cp build/aegis staging/aegis/
+          cp LICENSE README.md staging/aegis/
           # Try to strip to reduce size (ignore failure on macOS if codesigning)
-          if command -v strip >/dev/null 2>&1; then strip package/aegis || true; fi
+          if command -v strip >/dev/null 2>&1; then strip staging/aegis/aegis || true; fi
           # Determine OS and arch for naming
           if [[ "$RUNNER_OS" == "macOS" ]]; then OS_NAME=macos; else OS_NAME=linux; fi
           ARCH=$(uname -m)
           VERSION=${GITHUB_REF_NAME:-dev}
           TAR=dist/aegis-${VERSION}-${OS_NAME}-${ARCH}.tar.gz
-          tar -C package -czf "$TAR" .
+          # Ensure archive has a top-level 'aegis' folder
+          tar -C staging -czf "$TAR" aegis
           # SHA256 checksum
           if command -v shasum >/dev/null 2>&1; then
             shasum -a 256 "$TAR" > "$TAR.sha256"
