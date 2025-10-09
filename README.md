@@ -69,7 +69,7 @@ If `-z` is not specified during decryption, you will get garbage output.
 ## File Format
 
 - magic(6): 'AEGIS\x00'
-- version(1): 0x04
+- version(1): 0x01
 - salt(16): Argon2id salt
 - header(24): libsodium secretstream header
 - ciphertext: stream of AEAD-encrypted chunks
