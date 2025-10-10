@@ -10,7 +10,7 @@
 namespace
 {
     constexpr const char *MAGIC = "AEGIS\x00"; // 6 bytes, includes null sentinel
-    constexpr unsigned char VERSION = 1;
+    constexpr unsigned char VERSION = 2;
 }
 
 namespace aegis
@@ -46,7 +46,8 @@ namespace aegis
                       const std::string &passphrase,
                       const KdfParams &params,
                       const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override,
-                      bool keyfile_used = false);
+                      bool keyfile_used = false,
+                      bool compress = false);
 
     // Decrypt a file created by encrypt_file()
     void decrypt_file(const std::filesystem::path &in,
@@ -54,7 +55,8 @@ namespace aegis
                       const std::string &passphrase,
                       const KdfParams &params,
                       const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override,
-                      bool keyfile_used = false);
+                      bool keyfile_used = false,
+                      bool compress = false);
 
     // Verify if the file can be decrypted with the given passphrase/key
     bool verify_file(const std::filesystem::path &in,
@@ -62,6 +64,24 @@ namespace aegis
                      const KdfParams &params,
                      const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override,
                      bool keyfile_used = false);
+
+    // Encrypt all files in a directory (recursively)               
+    void encrypt_directory(const std::filesystem::path &in_dir,
+                           const std::filesystem::path &out_dir,
+                           const std::string &passphrase,
+                           const KdfParams &params,
+                           const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override,
+                           bool keyfile_used = false,
+                           bool compress = false);
+
+    // Decrypt all files in a directory (recursively)
+    void decrypt_directory(const std::filesystem::path &in_dir,
+                           const std::filesystem::path &out_dir,
+                           const std::string &passphrase,
+                           const KdfParams &params,
+                           const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override,
+                           bool keyfile_used = false,
+                           bool compress = false);
 
     // Compress file
     void compress_file(const std::filesystem::path &in, const std::filesystem::path &out);

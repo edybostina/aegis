@@ -20,6 +20,7 @@ namespace aegis::utils
         std::cerr << label;
         std::cerr.flush();
 
+        // why is this still here
 #ifdef _WIN32
         HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
         DWORD mode = 0;

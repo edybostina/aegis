@@ -23,7 +23,7 @@ case "$uname_s" in
 		fi
 		;;
 	Linux)
-		# linux is the greatest OS --- IGNORE ---
+		
 		;;
 	MINGW*|MSYS*|CYGWIN*)
         # no idea if this works. for now, its commented out

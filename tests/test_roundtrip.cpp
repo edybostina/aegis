@@ -20,8 +20,8 @@ int main()
     std::array<unsigned char, 32> empty_key{};
     bool keyfile_used = false;
 
-    encrypt_file("/tmp/aegis_in.txt", "/tmp/aegis_in.txt.enc", pass, params, empty_key, keyfile_used);
-    decrypt_file("/tmp/aegis_in.txt.enc", "/tmp/aegis_out.txt", pass, params, empty_key, keyfile_used);
+    encrypt_file("/tmp/aegis_in.txt", "/tmp/aegis_in.txt.enc", pass, params, empty_key, keyfile_used, true);
+    decrypt_file("/tmp/aegis_in.txt.enc", "/tmp/aegis_out.txt", pass, params, empty_key, keyfile_used, true);
 
     std::ifstream g("/tmp/aegis_out.txt");
     std::string out;

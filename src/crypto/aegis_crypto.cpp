@@ -54,15 +54,27 @@ namespace aegis
                       const std::string &passphrase,
                       const KdfParams &params,
                       const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override,
-                      bool keyfile_used)
+                      bool keyfile_used,
+                      bool compress)
     {
         int fd_in = io::open_readonly(in);
         int fd_out = io::open_readwrite(out);
 
+        if (compress)
+        {
+            // create a temporary compressed file
+            std::string temp_compressed = out.string() + ".compressed_tmp";
+            compress_file(in, temp_compressed);
+            close(fd_in);
+            fd_in = io::open_readonly(temp_compressed);
+            std::filesystem::remove(temp_compressed);
+        }
+
         // write the header
-        // format : magic | version | salt | stream header
+        // format : magic | version | compress | salt | stream header
         io::write_all(fd_out, reinterpret_cast<const unsigned char *>(MAGIC), 6);
         io::write_all(fd_out, &VERSION, 1);
+        io::write_all(fd_out, reinterpret_cast<const unsigned char *>(compress ? "\x01" : "\x00"), 1); // 1 byte compress flag
 
         std::array<unsigned char, 16> salt{};
         auto key = keyfile_used
@@ -108,8 +120,10 @@ namespace aegis
             }
         }
         utils::progress_bar(100, "Encrypting:", ""); // ensure 100% at end
+
         close(fd_in);
         close(fd_out);
+        
     }
 
     void decrypt_file(const std::filesystem::path &in,
@@ -117,7 +131,8 @@ namespace aegis
                       const std::string &passphrase,
                       const KdfParams &params,
                       const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override,
-                      bool keyfile_used)
+                      bool keyfile_used,
+                      bool compress)
     {
         int fd_in = io::open_readonly(in);
         int fd_out = io::open_readwrite(out);
@@ -132,6 +147,13 @@ namespace aegis
         if (ver.size() != 1 || ver[0] != VERSION)
             throw std::runtime_error("Unsupported Aegis version");
 
+        auto comp = io::read_chunk(fd_in, 1);
+        if (comp.size() != 1 || (comp[0] != 0x00 && comp[0] != 0x01))
+            throw std::runtime_error("Unsupported compression flag");
+        bool file_compressed = (comp[0] == 0x01);
+        if (file_compressed != compress)
+            throw std::runtime_error("Compression flag mismatch (use -z if needed)");
+        
         std::array<unsigned char, 16> salt{};
         auto saltv = io::read_chunk(fd_in, salt.size());
         if (saltv.size() != salt.size())
@@ -183,6 +205,14 @@ namespace aegis
         }
         utils::progress_bar(100, "Decrypting:", ""); // ensure 100% at end
 
+        if (compress && file_compressed)
+        {
+            // decompress the output file in place
+            close(fd_out);
+            decompress_file(out, out.string() + ".decompressed_tmp");
+            std::filesystem::remove(out);
+            std::filesystem::rename(out.string() + ".decompressed_tmp", out);
+        }
         close(fd_in);
         close(fd_out);
     }
@@ -257,6 +287,62 @@ namespace aegis
         utils::progress_bar(100, "Verifying:", ""); // ensure 100% at end
         close(fd_in);
         return true;
+    }
+
+    void encrypt_directory(const std::filesystem::path &in_dir,
+                           const std::filesystem::path &out_dir,
+                           const std::string &passphrase,
+                           const KdfParams &params,
+                           const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override,
+                           bool keyfile_used,
+                           bool compress)
+    {
+        if (!std::filesystem::exists(in_dir) || !std::filesystem::is_directory(in_dir))
+            throw std::runtime_error("Input directory does not exist or is not a directory");
+        if (!std::filesystem::exists(out_dir))
+            std::filesystem::create_directories(out_dir);
+
+        for (const auto &entry : std::filesystem::recursive_directory_iterator(in_dir))
+        {
+            if (entry.is_regular_file())
+            {
+                auto relative_path = std::filesystem::relative(entry.path(), in_dir);
+                auto out_path = out_dir / relative_path;
+                auto out_parent = out_path.parent_path();
+                if (!std::filesystem::exists(out_parent))
+                    std::filesystem::create_directories(out_parent);
+                std::cout << "Encrypting: " << entry.path() << " -> " << out_path << std::endl;
+                encrypt_file(entry.path(), out_path, passphrase, params, key_override, keyfile_used, compress);
+            }
+        }
+    }
+
+    void decrypt_directory(const std::filesystem::path &in_dir,
+                           const std::filesystem::path &out_dir,
+                           const std::string &passphrase,
+                           const KdfParams &params,
+                           const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override,
+                           bool keyfile_used,
+                           bool compress)
+    {
+        if (!std::filesystem::exists(in_dir) || !std::filesystem::is_directory(in_dir))
+            throw std::runtime_error("Input directory does not exist or is not a directory");
+        if (!std::filesystem::exists(out_dir))
+            std::filesystem::create_directories(out_dir);
+
+        for (const auto &entry : std::filesystem::recursive_directory_iterator(in_dir))
+        {
+            if (entry.is_regular_file())
+            {
+                auto relative_path = std::filesystem::relative(entry.path(), in_dir);
+                auto out_path = out_dir / relative_path;
+                auto out_parent = out_path.parent_path();
+                if (!std::filesystem::exists(out_parent))
+                    std::filesystem::create_directories(out_parent);
+                std::cout << "Decrypting: " << entry.path() << " -> " << out_path << std::endl;
+                decrypt_file(entry.path(), out_path, passphrase, params, key_override, keyfile_used, compress);
+            }
+        }
     }
 
     void compress_file(const std::filesystem::path &in, const std::filesystem::path &out)

@@ -5,7 +5,7 @@
 
 An easy-to-use file encryption tool.
 
-Prereqs: CMake >= 3.12, a C++17 compiler, libsodium dev package, zlib1g-dev.
+Prereqs: CMake >= 3.15, a C++17 compiler, libsodium dev package, zlib1g-dev.
 
 - Ubuntu/Debian: sudo apt-get install libsodium-dev cmake g++ zlib1g-dev
 - macOS (Homebrew): brew install libsodium cmake zlib
@@ -64,12 +64,13 @@ To compress data before encryption, use `-z`:
 ./aegis dec -i secret.txt.aegis -o secret.txt -z
 ```
 When using compression, the `-z` flag must be specified for both encryption and decryption.
-If `-z` is not specified during decryption, you will get garbage output.
+If `-z` is not specified during decryption, you will get an error.
 
 ## File Format
 
 - magic(6): 'AEGIS\x00'
-- version(1): 0x01
+- version(1): 0x02
+- compress(1): 0x00 (no compression) or 0x01 (compressed)
 - salt(16): Argon2id salt
 - header(24): libsodium secretstream header
 - ciphertext: stream of AEAD-encrypted chunks
