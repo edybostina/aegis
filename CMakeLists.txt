@@ -15,8 +15,22 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 find_package(PkgConfig REQUIRED)
 
 # --- libsodium ---
-pkg_check_modules(SODIUM REQUIRED libsodium)
-message(STATUS "Found libsodium: ${SODIUM_VERSION}")
+if (NOT SODIUM_FOUND)
+    message(WARNING "pkg-config could not find libsodium, trying manual lookup...")
+
+    find_path(SODIUM_INCLUDE_DIR sodium.h)
+    find_library(SODIUM_LIBRARY sodium)
+
+
+    if (NOT SODIUM_INCLUDE_DIR OR NOT SODIUM_LIBRARY)
+        message(FATAL_ERROR "Could not find libsodium! Install it via 'brew install libsodium' or 'apt install libsodium-dev'")
+    endif()
+
+    set(SODIUM_INCLUDE_DIRS ${SODIUM_INCLUDE_DIR})
+    set(SODIUM_LIBRARIES ${SODIUM_LIBRARY})
+else()
+    message(STATUS "Found libsodium via pkg-config: ${SODIUM_VERSION}")
+endif()
 
 # --- ZLIB ---
 find_package(ZLIB REQUIRED)
