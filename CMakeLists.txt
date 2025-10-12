@@ -1,42 +1,74 @@
 cmake_minimum_required(VERSION 3.15)
 project(aegis LANGUAGES CXX)
 
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 option(AEGIS_BUILD_TESTS "Build test executables" ON)
-
-# for better organization in IDEs
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-
 
 find_package(PkgConfig REQUIRED)
 
 # --- libsodium ---
-if (NOT SODIUM_FOUND)
+pkg_check_modules(SODIUM QUIET libsodium)
+
+if (SODIUM_FOUND)
+    if (SODIUM_LIBRARIES STREQUAL "sodium" OR SODIUM_LIBRARIES STREQUAL "-lsodium")
+        message(WARNING "pkg-config found libsodium but didn't provide a valid path; trying manual lookup...")
+
+        find_library(SODIUM_LIBRARY
+            NAMES sodium libsodium
+            PATH_SUFFIXES lib
+            PATHS
+                /usr/local /usr /opt/local
+                /opt/homebrew /opt/homebrew/opt/libsodium
+                "$ENV{VCPKG_ROOT}/installed/x64-osx"
+                "$ENV{VCPKG_ROOT}/installed/x64-linux"
+                "$ENV{VCPKG_ROOT}/installed/x64-windows"
+        )
+
+        if (SODIUM_LIBRARY)
+            set(SODIUM_LIBRARIES ${SODIUM_LIBRARY})
+            message(STATUS "Resolved libsodium manually: ${SODIUM_LIBRARY}")
+        else()
+            message(FATAL_ERROR "Could not find actual libsodium library even though pkg-config reported it.")
+        endif()
+    else()
+        message(STATUS "Found libsodium via pkg-config: ${SODIUM_VERSION}")
+    endif()
+else()
     message(WARNING "pkg-config could not find libsodium, trying manual lookup...")
 
-    find_path(SODIUM_INCLUDE_DIR sodium.h)
-    find_library(SODIUM_LIBRARY sodium)
+    find_path(SODIUM_INCLUDE_DIR
+        NAMES sodium.h
+        PATH_SUFFIXES include include/sodium
+        PATHS /usr/local /usr /opt/local /opt/homebrew /opt/homebrew/opt/libsodium
+    )
 
+    find_library(SODIUM_LIBRARY
+        NAMES sodium libsodium
+        PATH_SUFFIXES lib
+        PATHS /usr/local /usr /opt/local /opt/homebrew /opt/homebrew/opt/libsodium
+    )
 
     if (NOT SODIUM_INCLUDE_DIR OR NOT SODIUM_LIBRARY)
-        message(FATAL_ERROR "Could not find libsodium! Install it via 'brew install libsodium' or 'apt install libsodium-dev'")
+        message(FATAL_ERROR "Could not find libsodium!
+Please install it via:
+  macOS:  brew install libsodium
+  Linux:  sudo apt install libsodium-dev
+")
     endif()
 
     set(SODIUM_INCLUDE_DIRS ${SODIUM_INCLUDE_DIR})
     set(SODIUM_LIBRARIES ${SODIUM_LIBRARY})
-else()
-    message(STATUS "Found libsodium via pkg-config: ${SODIUM_VERSION}")
 endif()
 
-# --- ZLIB ---
+# zlib
 find_package(ZLIB REQUIRED)
 message(STATUS "Found ZLIB: ${ZLIB_VERSION}")
 
-# aegis_core library
+# aegis_core
 add_library(aegis_core
     src/crypto/aegis_crypto.cpp
     src/core/file_io.cpp
@@ -56,30 +88,18 @@ target_link_libraries(aegis_core
         ZLIB::ZLIB
 )
 
-target_compile_options(aegis_core
-    PRIVATE
-        ${SODIUM_CFLAGS_OTHER}
-)
+target_compile_options(aegis_core PRIVATE ${SODIUM_CFLAGS_OTHER})
 
-# aegis CLI executable
+# cli
 add_executable(aegis src/cli/main.cpp)
-
-target_link_libraries(aegis
-    PRIVATE
-        aegis_core
-)
-
-target_include_directories(aegis PRIVATE
-    ${SODIUM_INCLUDE_DIRS}
-)
+target_link_libraries(aegis PRIVATE aegis_core)
+target_include_directories(aegis PRIVATE ${SODIUM_INCLUDE_DIRS})
 
 # tests
 if (AEGIS_BUILD_TESTS)
     enable_testing()
     add_executable(aegis_tests tests/test_roundtrip.cpp)
-
     target_link_libraries(aegis_tests PRIVATE aegis_core)
-
     add_test(NAME roundtrip COMMAND aegis_tests)
 endif()
 
