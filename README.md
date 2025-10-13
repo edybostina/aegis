@@ -9,8 +9,7 @@ Prereqs: CMake >= 3.15, a C++17 compiler, libsodium dev package, zlib1g-dev.
 
 - Ubuntu/Debian: sudo apt-get install libsodium-dev cmake g++ zlib1g-dev
 - macOS (Homebrew): brew install libsodium cmake zlib
-- Windows (vcpkg): vcpkg install libsodium:x64-windows zlib:x64-windows
-  then configure CMake toolchain to use vcpkg
+- Windows (vcpkg): coming soon...
 
 ## Build:
 
