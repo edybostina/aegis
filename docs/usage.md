@@ -2,6 +2,16 @@
 
 The following instructions assume you have already built the `aegis` executable. If you haven't done so, please refer to the [Getting Started](getting_started.md) guide.
 
+## Contents
+
+- [File Format](#file-format)
+- [Security Notes](#security-notes)
+- [Arguments](#arguments)
+- [Encrypting a file](#encrypting-a-file)
+- [Decrypting a file](#decrypting-a-file)
+- [Verifying a file](#verifying-a-file)
+- [Generating a key](#generating-a-key)
+
 ## File Format
 
 The encrypted file format consists of a header followed by the ciphertext and authentication tag. The header includes metadata such as magic bytes, version, compression flag, salt, nonce, and chunk size (for streaming mode).
