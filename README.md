@@ -2,81 +2,52 @@
 
 ![Build](https://github.com/edybostina/aegis/actions/workflows/build.yml/badge.svg)
 ![License](https://img.shields.io/github/license/edybostina/aegis)
+![Release](https://img.shields.io/github/v/release/edybostina/aegis)
+![Last commit](https://img.shields.io/github/last-commit/edybostina/aegis)
+![Platforms](https://img.shields.io/badge/platform-linux%20%7C%20macOS-lightgrey)
 
-An easy-to-use file encryption tool.
 
-Prereqs: CMake >= 3.15, a C++17 compiler, libsodium dev package, zlib1g-dev.
 
-- Ubuntu/Debian: sudo apt-get install libsodium-dev cmake g++ zlib1g-dev
-- macOS (Homebrew): brew install libsodium cmake zlib
-- Windows (vcpkg): coming soon...
+An easy-to-use file encryption tool using modern AEAD algorithms.
 
-## Build:
+## Features
 
-```bash
-git clone https://github.com/edybostina/aegis.git
-cd aegis
-chmod +x build.sh
-./build.sh
-```
+- Secure file encryption using modern AEAD algorithms (e.g., XChaCha20-Poly1305).
+- Support for both passphrase-based and keyfile-based encryption.
+- Optional compression before encryption to save space.
+- Recursive directory processing for batch encryption/decryption.
+- Cross-platform support (Linux, macOS, and Windows in the near future).
+- Simple command-line interface for ease of use.
+- Open-source and auditable codebase.
+
+## Installation
+
+To install Aegis, follow the instructions in the [Getting Started](docs/getting_started.md#installation) guide.
 
 ## Usage
 
-To encrypt a file:
+For detailed usage instructions, refer to the [Usage](docs/usage.md) guide.
 
-```bash
-./aegis enc -i secret.txt -o secret.txt.aegis
+## Layout
+
 ```
-
-To decrypt a file:
-
-```bash
-./aegis dec -i secret.txt.aegis -o secret.txt
+└── aegis
+    ├── CMakeLists.txt          # CMake build configuration
+    ├── build.sh                # Build script for Unix-like systems
+    ├── LICENSE                 # License file
+    ├── README.md               # This file
+    ├── docs                    # Documentation files
+    │   ├── getting_started.md  # Installation and getting started guide
+    │   └── usage.md            # Usage instructions and examples
+    └── src                     # Source code files
+        ├── cli/                # Command-line interface implementation
+        │   └── main.cpp        # Main entry point
+        ├── crypto/             # Cryptographic functions and algorithms
+        └── core/               # Core functionality
+    └── tests                   # Test cases and test data
+        └── test_roundtrip.cpp  # Example test case
+    
 ```
+## License
 
-To verify a file (decrypts in memory, no output):
-
-```bash
-./aegis verify -i secret.txt.aegis
-```
-
-All of the above commands support `-p passphrase` to provide a passphrase on the command line.
-If -p is omitted, you will be prompted for a passphrase (input hidden).
-
-To generate a random key and save it to a file:
-
-```bash
-./aegis genkey -o keyfile
-```
-
-To use a key file for encryption/decryption instead of a passphrase, use `-k keyfile`:
-
-```bash
-./aegis enc -i secret.txt -o secret.txt.aegis -k keyfile
-./aegis dec -i secret.txt.aegis -o secret.txt -k keyfile
-``` 
-
-To compress data before encryption, use `-z`:
-
-```bash
-./aegis enc -i secret.txt -o secret.txt.aegis -z
-./aegis dec -i secret.txt.aegis -o secret.txt -z
-```
-When using compression, the `-z` flag must be specified for both encryption and decryption.
-If `-z` is not specified during decryption, you will get an error.
-
-## File Format
-
-- magic(6): 'AEGIS\x00'
-- version(1): 0x02
-- compress(1): 0x00 (no compression) or 0x01 (compressed)
-- salt(16): Argon2id salt
-- header(24): libsodium secretstream header
-- ciphertext: stream of AEAD-encrypted chunks
-
-## Security Notes
-
-- Uses Argon2id (libsodium pwhash) with INTERACTIVE limits by default.
-- For archival-strength, consider MODERATE or SENSITIVE params.
-- XChaCha20-Poly1305 via secretstream provides chunked encryption with built-in integrity and an authenticated end-of-stream tag.
-- Passphrase quality and KDF parameters critically affect security.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
