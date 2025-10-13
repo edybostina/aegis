@@ -1,7 +1,7 @@
 # build artifacts
 build/
-build*/               # Any build directories (build-debug, build-release, etc.)
-cmake-build*/         # CLion default build directories
+build*/ 
+cmake-build*/
 out/
 bin/
 lib/
