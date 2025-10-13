@@ -1,0 +1,102 @@
+# build artifacts
+build/
+build*/               # Any build directories (build-debug, build-release, etc.)
+cmake-build*/         # CLion default build directories
+out/
+bin/
+lib/
+dist/
+staging/
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+*.out
+
+# cmake specific
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+install_manifest.txt
+Testing/
+CTestTestfile.cmake
+
+# test outputs
+*.log
+*.tmp
+*.test
+*.gcda
+*.gcno
+*.gcov
+coverage/
+*.profraw
+*.profdata
+
+# IDEs / Editors
+# VSCode
+.vscode/
+.vscode-test/
+.history/
+*.code-workspace
+
+# CLion / JetBrains
+.idea/
+*.iml
+
+# Visual Studio (if used later)
+.vs/
+*.sln
+*.vcxproj*
+Debug/
+Release/
+x64/
+x86/
+
+# macOS Finder
+.DS_Store
+
+# Linux desktop & editor
+*.swp
+*.swo
+*~
+.ninja_deps
+.ninja_log
+
+# misc
+*.lock
+*.bak
+*.orig
+*.rej
+*.old
+*.tmp
+*.cache
+.cache/
+__pycache__/
+.env
+.env.local
+
+# packaged releases
+*.tar.gz
+*.zip
+*.7z
+*.sha256
+*.sig
+
+# github artifacts
+release_assets/
+artifact/
+coverage-report/
+*.log
+
+# aegis specific
+# Local keys or config files
+keys/
+*.key
+*.pem
+*.der
+*.enc
+*.dec
+*.lock.json
+*.aegis
