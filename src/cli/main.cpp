@@ -1,4 +1,4 @@
-#include "../../include/aegis/aegis_crypto.hpp"
+#include "aegis/aegis_crypto.hpp"
 #include "../../include/aegis/utils.hpp"
 #include <iostream>
 #include <filesystem>

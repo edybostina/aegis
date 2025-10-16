@@ -1,4 +1,4 @@
-#include "../../include/aegis/utils.hpp"
+#include "aegis/utils.hpp"
 #include <iostream>
 #include <filesystem>
 #ifdef _WIN32

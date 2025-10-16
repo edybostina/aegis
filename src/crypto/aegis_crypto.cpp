@@ -1,6 +1,6 @@
-#include "../../include/aegis/aegis_crypto.hpp"
-#include "../../include/aegis/file_io.hpp"
-#include "../../include/aegis/utils.hpp"
+#include "aegis/aegis_crypto.hpp"
+#include "aegis/file_io.hpp"
+#include "aegis/utils.hpp"
 #include <array>
 #include <vector>
 #include <stdexcept>
@@ -409,7 +409,7 @@ namespace aegis
                 auto out_parent = out_path.parent_path();
                 if (!std::filesystem::exists(out_parent))
                     std::filesystem::create_directories(out_parent);
-                    
+
                 utils::Logger::log(utils::Logger::Level::INFO, "Decrypting: " + entry.path().string() + " -> " + out_path.string());
                 decrypt_file(entry.path(), out_path, passphrase, params, key_override, keyfile_used, compress, verbose);
             }
