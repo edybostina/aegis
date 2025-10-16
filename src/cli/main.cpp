@@ -1,5 +1,5 @@
 #include "aegis/aegis_crypto.hpp"
-#include "../../include/aegis/utils.hpp"
+#include "aegis/utils.hpp"
 #include <iostream>
 #include <filesystem>
 #include <fstream>
