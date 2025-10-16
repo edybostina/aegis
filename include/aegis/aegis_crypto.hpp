@@ -10,7 +10,7 @@
 namespace
 {
     constexpr const char *MAGIC = "AEGIS\x00"; // 6 bytes, includes null sentinel
-    constexpr unsigned char VERSION = 2;
+    constexpr unsigned char VERSION = 3;
 }
 
 namespace aegis
