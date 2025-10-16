@@ -9,7 +9,6 @@
 #include <unistd.h>
 #include <iostream>
 
-
 namespace aegis
 {
     void init_crypto()
@@ -55,19 +54,36 @@ namespace aegis
                       const KdfParams &params,
                       const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override,
                       bool keyfile_used,
-                      bool compress)
+                      bool compress,
+                      bool verbose)
     {
+        if (verbose)
+            utils::Logger::log(utils::Logger::Level::INFO, "Starting the encryption process...");
+
         int fd_in = io::open_readonly(in);
         int fd_out = io::open_readwrite(out);
+
+        if (verbose)
+        {
+            utils::Logger::log(utils::Logger::Level::INFO, "Input file: " + in.string());
+            utils::Logger::log(utils::Logger::Level::INFO, "Output file: " + out.string());
+            utils::Logger::log(utils::Logger::Level::INFO, std::string("Compression: ") + (compress ? "enabled" : "disabled"));
+            utils::Logger::log(utils::Logger::Level::INFO, std::string("Key source: ") + (keyfile_used ? "keyfile" : "passphrase"));
+        }
 
         if (compress)
         {
             // create a temporary compressed file
             std::string temp_compressed = out.string() + ".compressed_tmp";
+            if (verbose)
+                utils::Logger::log(utils::Logger::Level::INFO, "Compressing input file to temporary file: " + temp_compressed);
             compress_file(in, temp_compressed);
             close(fd_in);
             fd_in = io::open_readonly(temp_compressed);
             std::filesystem::remove(temp_compressed);
+
+            if (verbose)
+                utils::Logger::log(utils::Logger::Level::INFO, "Compression completed.");
         }
 
         // write the header
@@ -96,6 +112,10 @@ namespace aegis
 
         const size_t total_size_estimate = std::filesystem::file_size(in);
         size_t current_encrypted_size = 0;
+
+        if (verbose)
+            utils::Logger::log(utils::Logger::Level::INFO, "Encrypting data stream...");
+
         while (true)
         {
             buf = io::read_chunk(fd_in, CHUNK);
@@ -123,7 +143,9 @@ namespace aegis
 
         close(fd_in);
         close(fd_out);
-        
+
+        if (verbose)
+            utils::Logger::log(utils::Logger::Level::INFO, "Encryption completed.");
     }
 
     void decrypt_file(const std::filesystem::path &in,
@@ -132,10 +154,22 @@ namespace aegis
                       const KdfParams &params,
                       const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override,
                       bool keyfile_used,
-                      bool compress)
+                      bool compress,
+                      bool verbose)
     {
+        if (verbose)
+            utils::Logger::log(utils::Logger::Level::INFO, "Starting the decryption process...");
+
         int fd_in = io::open_readonly(in);
         int fd_out = io::open_readwrite(out);
+
+        if (verbose)
+        {
+            utils::Logger::log(utils::Logger::Level::INFO, "Input file: " + in.string());
+            utils::Logger::log(utils::Logger::Level::INFO, "Output file: " + out.string());
+            utils::Logger::log(utils::Logger::Level::INFO, std::string("Compression: ") + (compress ? "enabled" : "disabled"));
+            utils::Logger::log(utils::Logger::Level::INFO, std::string("Key source: ") + (keyfile_used ? "keyfile" : "passphrase"));
+        }
 
         // Read header
         std::array<unsigned char, 6> magic{};
@@ -153,7 +187,7 @@ namespace aegis
         bool file_compressed = (comp[0] == 0x01);
         if (file_compressed != compress)
             throw std::runtime_error("Compression flag mismatch (use -z if needed)");
-        
+
         std::array<unsigned char, 16> salt{};
         auto saltv = io::read_chunk(fd_in, salt.size());
         if (saltv.size() != salt.size())
@@ -180,6 +214,10 @@ namespace aegis
 
         const size_t total_size_estimate = std::filesystem::file_size(in);
         size_t current_decrypted_size = 0;
+
+        if (verbose)
+            utils::Logger::log(utils::Logger::Level::INFO, "Decrypting data stream...");
+
         while (!done)
         {
             std::vector<unsigned char> enc = io::read_chunk(fd_in, CHUNK);
@@ -209,22 +247,37 @@ namespace aegis
         {
             // decompress the output file in place
             close(fd_out);
+            if (verbose)
+                utils::Logger::log(utils::Logger::Level::INFO, "Decompressing output file in place...");
             decompress_file(out, out.string() + ".decompressed_tmp");
             std::filesystem::remove(out);
             std::filesystem::rename(out.string() + ".decompressed_tmp", out);
+            if (verbose)
+                utils::Logger::log(utils::Logger::Level::INFO, "Decompression completed.");
         }
         close(fd_in);
         close(fd_out);
+        if (verbose)
+            utils::Logger::log(utils::Logger::Level::INFO, "Decryption completed.");
     }
 
     bool verify_file(const std::filesystem::path &in,
                      const std::string &passphrase,
                      const KdfParams &params,
                      const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override,
-                     bool keyfile_used)
+                     bool keyfile_used,
+                     bool verbose)
     {
+        if (verbose)
+            utils::Logger::log(utils::Logger::Level::INFO, "Starting the verification process...");
         // Same as decrypt_file but without writing output
         int fd_in = io::open_readonly(in);
+
+        if (verbose)
+        {
+            utils::Logger::log(utils::Logger::Level::INFO, "Input file: " + in.string());
+            utils::Logger::log(utils::Logger::Level::INFO, std::string("Key source: ") + (keyfile_used ? "keyfile" : "passphrase"));
+        }
 
         // Read header
         std::array<unsigned char, 6> magic{};
@@ -261,6 +314,10 @@ namespace aegis
         bool done = false;
         size_t current_decrypted_size = 0;
         const size_t total_size_estimate = std::filesystem::file_size(in);
+
+        if (verbose)
+            utils::Logger::log(utils::Logger::Level::INFO, "Verifying data stream...");
+
         while (!done)
         {
             std::vector<unsigned char> enc = io::read_chunk(fd_in, CHUNK);
@@ -295,12 +352,18 @@ namespace aegis
                            const KdfParams &params,
                            const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override,
                            bool keyfile_used,
-                           bool compress)
+                           bool compress,
+                           bool verbose)
     {
         if (!std::filesystem::exists(in_dir) || !std::filesystem::is_directory(in_dir))
             throw std::runtime_error("Input directory does not exist or is not a directory");
+
         if (!std::filesystem::exists(out_dir))
+        {
             std::filesystem::create_directories(out_dir);
+            if (verbose)
+                utils::Logger::log(utils::Logger::Level::INFO, "Created output directory: " + out_dir.string());
+        }
 
         for (const auto &entry : std::filesystem::recursive_directory_iterator(in_dir))
         {
@@ -311,8 +374,9 @@ namespace aegis
                 auto out_parent = out_path.parent_path();
                 if (!std::filesystem::exists(out_parent))
                     std::filesystem::create_directories(out_parent);
-                std::cout << "Encrypting: " << entry.path() << " -> " << out_path << std::endl;
-                encrypt_file(entry.path(), out_path, passphrase, params, key_override, keyfile_used, compress);
+
+                utils::Logger::log(utils::Logger::Level::INFO, "Encrypting: " + entry.path().string() + " -> " + out_path.string());
+                encrypt_file(entry.path(), out_path, passphrase, params, key_override, keyfile_used, compress, verbose);
             }
         }
     }
@@ -323,12 +387,18 @@ namespace aegis
                            const KdfParams &params,
                            const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override,
                            bool keyfile_used,
-                           bool compress)
+                           bool compress,
+                           bool verbose)
     {
         if (!std::filesystem::exists(in_dir) || !std::filesystem::is_directory(in_dir))
             throw std::runtime_error("Input directory does not exist or is not a directory");
+
         if (!std::filesystem::exists(out_dir))
+        {
             std::filesystem::create_directories(out_dir);
+            if (verbose)
+                utils::Logger::log(utils::Logger::Level::INFO, "Created output directory: " + out_dir.string());
+        }
 
         for (const auto &entry : std::filesystem::recursive_directory_iterator(in_dir))
         {
@@ -339,8 +409,9 @@ namespace aegis
                 auto out_parent = out_path.parent_path();
                 if (!std::filesystem::exists(out_parent))
                     std::filesystem::create_directories(out_parent);
-                std::cout << "Decrypting: " << entry.path() << " -> " << out_path << std::endl;
-                decrypt_file(entry.path(), out_path, passphrase, params, key_override, keyfile_used, compress);
+                    
+                utils::Logger::log(utils::Logger::Level::INFO, "Decrypting: " + entry.path().string() + " -> " + out_path.string());
+                decrypt_file(entry.path(), out_path, passphrase, params, key_override, keyfile_used, compress, verbose);
             }
         }
     }

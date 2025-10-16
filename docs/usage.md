@@ -133,3 +133,4 @@ The keygen mode supports the following option:
 
 This command generates a random encryption key and saves it to `mykeyfile`.
 A keyfile is a binary file containing 32 random bytes suitable for use as an encryption key.
+

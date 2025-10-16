@@ -64,6 +64,28 @@ namespace aegis::utils
         return prompt_hidden(label);
     }
 
+    void Logger::log(Level level, const std::string &message)
+    {
+        const char *levelStr = "";
+        switch (level)
+        {
+        case Level::DEBUG:
+            levelStr = "DEBUG";
+            break;
+        case Level::INFO:
+            levelStr = "INFO";
+            break;
+        case Level::WARNING:
+            levelStr = "WARNING";
+            break;
+        case Level::ERROR:
+            levelStr = "ERROR";
+            break;
+        }
+
+        std::cerr << "[" << levelStr << "] " << message << "\n";
+    }
+
     void progress_bar(int percent, const std::string &prefix, const std::string &suffix)
     {
         const int barWidth = 50;

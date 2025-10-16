@@ -18,28 +18,29 @@ enum ExitCodes
 
 static void usage()
 {
-    std::cout << "Aegis v0." << (int)VERSION << ".0 — file encryption (XChaCha20-Poly1305 via libsodium)\n";
-    std::cout << "Usage:\n";
-    std::cout << "  aegis <mode> [options]\n";
-    std::cout << "Modes:\n";
-    std::cout << "  enc      Encrypt a file/directory\n";
-    std::cout << "  dec      Decrypt a file/directory\n";
-    std::cout << "  keygen   Generate a random key file\n";
-    std::cout << "  verify   Verify integrity of an encrypted file\n";
-    std::cout << "Options:\n";
-    std::cout << "  -i <file>    Input file (required for enc/dec/verify)\n";
-    std::cout << "  -o <file>    Output file (required for enc/dec/keygen)\n";
-    std::cout << "  -p <pass>    Passphrase (if omitted, will prompt; not needed if -k is used)\n";
-    std::cout << "  -k <file>    Key file (32 random bytes; if used, -p is not needed)\n";
-    std::cout << "  -z           Compress/Decompress file (before encryption / after decryption)\n";
-    std::cout << "  -r           Recursive (for directory encryption/decryption)\n";
-    std::cout << "  -h, --help   Show this help message\n";
-    std::cout << "  --version    Show version information\n";
-    std::cout << "Exit codes:\n";
-    std::cout << "  0   Success\n";
-    std::cout << "  1   Invalid usage or arguments\n";
-    std::cout << "  2   Runtime error (e.g. file I/O error, decryption failed)\n";
-    std::cout << "  3   Verification failed (file corrupt or wrong passphrase/key)\n";
+    utils::Logger::log(utils::Logger::Level::INFO, "Aegis v0." + std::to_string((int)VERSION) + ".0 — file encryption (XChaCha20-Poly1305 via libsodium)");
+    utils::Logger::log(utils::Logger::Level::INFO, "Usage:");
+    utils::Logger::log(utils::Logger::Level::INFO, "  aegis <mode> [options]");
+    utils::Logger::log(utils::Logger::Level::INFO, "Modes:");
+    utils::Logger::log(utils::Logger::Level::INFO, "  enc      Encrypt a file/directory");
+    utils::Logger::log(utils::Logger::Level::INFO, "  dec      Decrypt a file/directory");
+    utils::Logger::log(utils::Logger::Level::INFO, "  keygen   Generate a random key file");
+    utils::Logger::log(utils::Logger::Level::INFO, "  verify   Verify integrity of an encrypted file");
+    utils::Logger::log(utils::Logger::Level::INFO, "Options:");
+    utils::Logger::log(utils::Logger::Level::INFO, "  -i <file>    Input file (required for enc/dec/verify)");
+    utils::Logger::log(utils::Logger::Level::INFO, "  -o <file>    Output file (required for enc/dec/keygen)");
+    utils::Logger::log(utils::Logger::Level::INFO, "  -p <pass>    Passphrase (if omitted, will prompt; not needed if -k is used)");
+    utils::Logger::log(utils::Logger::Level::INFO, "  -k <file>    Key file (32 random bytes; if used, -p is not needed)");
+    utils::Logger::log(utils::Logger::Level::INFO, "  -z           Compress/Decompress file (before encryption / after decryption)");
+    utils::Logger::log(utils::Logger::Level::INFO, "  -r           Recursive (for directory encryption/decryption)");
+    utils::Logger::log(utils::Logger::Level::INFO, "  -v           Verbose output (extra logging)");
+    utils::Logger::log(utils::Logger::Level::INFO, "  -h, --help   Show this help message");
+    utils::Logger::log(utils::Logger::Level::INFO, "  --version    Show version information");
+    utils::Logger::log(utils::Logger::Level::INFO, "Exit codes:");
+    utils::Logger::log(utils::Logger::Level::INFO, "  0   Success");
+    utils::Logger::log(utils::Logger::Level::INFO, "  1   Invalid usage or arguments");
+    utils::Logger::log(utils::Logger::Level::INFO, "  2   Runtime error (e.g. file I/O error, decryption failed)");
+    utils::Logger::log(utils::Logger::Level::INFO, "  3   Verification failed (file corrupt or wrong passphrase/key)");
 }
 
 static void handle_basic_cases(int argc, char **argv)
@@ -53,7 +54,7 @@ static void handle_basic_cases(int argc, char **argv)
         }
         if (argc == 2 && std::string(argv[1]) == "--version")
         {
-            std::cout << "Aegis version 0." << (int)VERSION << ".0\n";
+            utils::Logger::log(utils::Logger::Level::INFO, "Aegis version 0." + std::to_string((int)VERSION) + ".0");
             exit(SUCCESS);
         }
         usage();
@@ -84,6 +85,7 @@ int main(int argc, char **argv)
         bool keyfile_used = false;
         bool compress = false;
         bool recursive = false;
+        bool verbose = false;
 
         for (int i = 2; i < argc; ++i)
         {
@@ -105,14 +107,14 @@ int main(int argc, char **argv)
                 std::string keyfile = argv[++i];
                 if (!utils::file_exists(keyfile))
                 {
-                    std::cerr << "Key file does not exist: " << keyfile << "\n";
+                    utils::Logger::log(utils::Logger::Level::ERROR, "Key file does not exist: " + keyfile);
                     return INVALID_USAGE;
                 }
                 std::ifstream kf(keyfile, std::ios::binary);
                 kf.read(reinterpret_cast<char *>(key_override.data()), key_override.size());
                 if (!kf || kf.gcount() != static_cast<std::streamsize>(key_override.size()))
                 {
-                    std::cerr << "Failed to read key file or invalid size: " << keyfile << "\n";
+                    utils::Logger::log(utils::Logger::Level::ERROR, "Failed to read key file or invalid size: " + keyfile);
                     return RUNTIME_ERROR;
                 }
                 keyfile_used = true;
@@ -125,6 +127,10 @@ int main(int argc, char **argv)
             {
                 recursive = true;
             }
+            else if (arg == "-v")
+            {
+                verbose = true;
+            }
             else
             {
                 usage();
@@ -134,12 +140,12 @@ int main(int argc, char **argv)
 
         if ((mode == "enc" || mode == "dec") && in.empty())
         {
-            std::cerr << "Input file is required for mode " << mode << "\n";
+            utils::Logger::log(utils::Logger::Level::ERROR, "Input file is required for mode " + mode);
             return INVALID_USAGE;
         }
         if ((mode == "enc" || mode == "dec") && out.empty())
         {
-            std::cerr << "Output file is required for mode " << mode << "\n";
+            utils::Logger::log(utils::Logger::Level::ERROR, "Output file is required for mode " + mode);
             return INVALID_USAGE;
         }
         if (!keyfile_used && pass.empty() && (mode == "enc" || mode == "dec"))
@@ -147,7 +153,7 @@ int main(int argc, char **argv)
             pass = utils::prompt_line("Enter passphrase: ", false);
             if (pass.empty())
             {
-                std::cerr << "Passphrase cannot be empty\n";
+                utils::Logger::log(utils::Logger::Level::ERROR, "Passphrase cannot be empty");
                 return INVALID_USAGE;
             }
         }
@@ -162,69 +168,70 @@ int main(int argc, char **argv)
             {
                 if (!recursive)
                 {
-                    std::cerr << "Input is a directory; use -r for recursive encryption\n";
+                    utils::Logger::log(utils::Logger::Level::ERROR, "Input is a directory; use -r for recursive encryption");
                     return INVALID_USAGE;
                 }
-                aegis::encrypt_directory(in_path, out_path, pass, kdf_params, key_override, keyfile_used, compress);
+                aegis::encrypt_directory(in_path, out_path, pass, kdf_params, key_override, keyfile_used, compress, verbose);
             }
             else
             {
-                aegis::encrypt_file(in_path, out_path, pass, kdf_params, key_override, keyfile_used, compress);
-                std::cout << "File encrypted successfully: " << out << "\n";
+                aegis::encrypt_file(in_path, out_path, pass, kdf_params, key_override, keyfile_used, compress, verbose);
+                utils::Logger::log(utils::Logger::Level::INFO, "File encrypted successfully: " + out);
             }
         }
         else if (mode == "dec")
         {
-            
+
             std::filesystem::path in_path(in);
             std::filesystem::path out_path(out);
             if (std::filesystem::is_directory(in_path))
             {
                 if (!recursive)
                 {
-                    std::cerr << "Input is a directory; use -r for recursive decryption\n";
+                    utils::Logger::log(utils::Logger::Level::ERROR, "Input is a directory; use -r for recursive decryption");
                     return INVALID_USAGE;
                 }
-                aegis::decrypt_directory(in_path, out_path, pass, kdf_params, key_override, keyfile_used, compress);
+                aegis::decrypt_directory(in_path, out_path, pass, kdf_params, key_override, keyfile_used, compress, verbose);
             }
             else
             {
-                aegis::decrypt_file(in_path, out_path, pass, kdf_params, key_override, keyfile_used, compress);
-                std::cout << "File decrypted successfully: " << out << "\n";
+                aegis::decrypt_file(in_path, out_path, pass, kdf_params, key_override, keyfile_used, compress, verbose);
+                utils::Logger::log(utils::Logger::Level::INFO, "File decrypted successfully: " + out);
             }
         }
         else if (mode == "keygen")
         {
             if (out.empty())
             {
-                std::cerr << "Output key file is required for keygen mode\n";
+                utils::Logger::log(utils::Logger::Level::ERROR, "Output key file is required for keygen mode");
                 return INVALID_USAGE;
             }
 
             if (utils::file_exists(out))
             {
-                std::cout << "Key file already exists. Overwrite? (y/N): ";
+                utils::Logger::log(utils::Logger::Level::WARNING, "Key file already exists: " + out);
+                std::cout << "Overwrite? (y/N): ";
                 std::string resp;
                 std::getline(std::cin, resp);
                 if (resp != "y" && resp != "Y")
                 {
-                    std::cout << "Aborting key generation.\n";
+                    utils::Logger::log(utils::Logger::Level::INFO, "Aborting key file generation.");
                     return SUCCESS;
                 }
-                std::cout << "Overwriting key file: " << out << "\n";
+                utils::Logger::log(utils::Logger::Level::INFO, "Overwriting existing key file.");
             }
 
             aegis::generate_key_file(out);
-            std::cout << "Key file generated successfully: " << out << "\n";
+            utils::Logger::log(utils::Logger::Level::INFO, "Key file generated successfully: " + out);
             return SUCCESS;
         }
         else if (mode == "verify")
         {
-            bool valid = aegis::verify_file(in, pass, kdf_params, key_override, keyfile_used);
+            bool valid = aegis::verify_file(in, pass, kdf_params, key_override, keyfile_used, verbose);
             if (valid)
-                std::cout << "File integrity verified successfully.\n";
+                utils::Logger::log(utils::Logger::Level::INFO, "File integrity verified successfully.");
             else
-                std::cout << "File integrity verification failed (corrupt or wrong passphrase/key).\n";
+                utils::Logger::log(utils::Logger::Level::ERROR, "File integrity verification failed (corrupt or wrong passphrase/key).");
             return valid ? SUCCESS : VERIFY_FAILED;
         }
 
@@ -232,7 +239,7 @@ int main(int argc, char **argv)
     }
     catch (const std::exception &e)
     {
-        std::cerr << "Error: " << e.what() << "\n";
+        utils::Logger::log(utils::Logger::Level::ERROR, std::string(e.what()));
         return RUNTIME_ERROR;
     }
 }

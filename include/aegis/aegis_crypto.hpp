@@ -47,7 +47,8 @@ namespace aegis
                       const KdfParams &params,
                       const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override,
                       bool keyfile_used = false,
-                      bool compress = false);
+                      bool compress = false,
+                      bool verbose = false);
 
     // Decrypt a file created by encrypt_file()
     void decrypt_file(const std::filesystem::path &in,
@@ -56,14 +57,16 @@ namespace aegis
                       const KdfParams &params,
                       const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override,
                       bool keyfile_used = false,
-                      bool compress = false);
+                      bool compress = false,
+                      bool verbose = false);
 
     // Verify if the file can be decrypted with the given passphrase/key
     bool verify_file(const std::filesystem::path &in,
                      const std::string &passphrase,
                      const KdfParams &params,
                      const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override,
-                     bool keyfile_used = false);
+                     bool keyfile_used = false,
+                     bool verbose = false);
 
     // Encrypt all files in a directory (recursively)               
     void encrypt_directory(const std::filesystem::path &in_dir,
@@ -72,7 +75,8 @@ namespace aegis
                            const KdfParams &params,
                            const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override,
                            bool keyfile_used = false,
-                           bool compress = false);
+                           bool compress = false,
+                           bool verbose = false);
 
     // Decrypt all files in a directory (recursively)
     void decrypt_directory(const std::filesystem::path &in_dir,
@@ -81,7 +85,8 @@ namespace aegis
                            const KdfParams &params,
                            const std::array<unsigned char, crypto_secretbox_KEYBYTES> &key_override,
                            bool keyfile_used = false,
-                           bool compress = false);
+                           bool compress = false,
+                           bool verbose = false);
 
     // Compress file
     void compress_file(const std::filesystem::path &in, const std::filesystem::path &out);
