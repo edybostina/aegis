@@ -17,7 +17,7 @@ The following instructions assume you have already built the `aegis` executable.
 The encrypted file format consists of a header followed by the ciphertext and authentication tag. The header includes metadata such as magic bytes, version, compression flag, salt, nonce, and chunk size (for streaming mode).
 
 - magic(6): 'AEGIS\x00'
-- version(1): at present, 0x02
+- version(1): at present, 0x03
 - compress(1): 0x00 (no compression) or 0x01 (compressed)
 - salt(16): Argon2id salt
 - header(24): libsodium secretstream header
