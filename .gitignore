@@ -13,6 +13,7 @@ staging/
 *.dll
 *.exe
 *.out
+compile_commands.json
 
 # cmake specific
 CMakeFiles/
@@ -76,6 +77,8 @@ x86/
 __pycache__/
 .env
 .env.local
+TODO.md
+
 
 # packaged releases
 *.tar.gz

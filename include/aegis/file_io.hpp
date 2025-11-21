@@ -2,7 +2,6 @@
 
 #include <cstddef>
 #include <vector>
-#include <string>
 #include <filesystem>
 
 namespace aegis::io

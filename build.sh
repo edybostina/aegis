@@ -37,7 +37,7 @@ case "$uname_s" in
 esac
 
 echo "Configuring with: cmake .. ${CMAKE_ARGS[*]}"
-cmake .. "${CMAKE_ARGS[@]}"
+cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON .. "${CMAKE_ARGS[@]}"
 
 echo "Building (${CMAKE_BUILD_TYPE})..."
 cmake --build . --config "${CMAKE_BUILD_TYPE}"
