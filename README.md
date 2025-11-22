@@ -6,8 +6,6 @@
 ![Last commit](https://img.shields.io/github/last-commit/edybostina/aegis)
 ![Platforms](https://img.shields.io/badge/platform-linux%20%7C%20macOS-lightgrey)
 
-
-
 An easy-to-use file encryption tool using modern AEAD algorithms.
 
 ## Features
@@ -28,6 +26,10 @@ To install Aegis, follow the instructions in the [Getting Started](docs/getting_
 
 For detailed usage instructions, refer to the [Usage](docs/usage.md) guide.
 
+## Security
+
+For an in-depth overview of Aegis's security design, please see the [Security](docs/security.md) documentation.
+
 ## Layout
 
 ```
@@ -46,8 +48,9 @@ For detailed usage instructions, refer to the [Usage](docs/usage.md) guide.
         └── core/               # Core functionality
     └── tests                   # Test cases and test data
         └── test_roundtrip.cpp  # Example test case
-    
+
 ```
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
