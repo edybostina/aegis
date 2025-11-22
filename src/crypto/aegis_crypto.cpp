@@ -6,7 +6,10 @@
 #include <stdexcept>
 #include <cstring>
 #include <fcntl.h>
-#ifndef _WIN32
+#ifdef _WIN32
+#include <io.h>
+#define close _close
+#else
 #include <unistd.h>
 #endif
 #include <iostream>

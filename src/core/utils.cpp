@@ -7,6 +7,8 @@
 #include <sodium.h>
 #ifdef _WIN32
 #include <windows.h>
+#include <io.h>
+#define close _close
 #ifdef ERROR
 #undef ERROR
 #endif
