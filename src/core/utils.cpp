@@ -1,6 +1,10 @@
 #include "aegis/utils.hpp"
 #include <iostream>
 #include <filesystem>
+#include <fstream>
+#include <system_error>
+#include <fcntl.h>
+#include <sodium.h>
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -104,5 +108,71 @@ namespace aegis::utils
         std::cout.flush();
         if (percent >= 100)
             std::cout << "\n";
+    }
+
+    bool validate_passphrase_strength(const std::string &passphrase)
+    {
+        // Basic strength validation
+        if (passphrase.length() < 8)
+        {
+            Logger::log(Logger::Level::WARNING, "Passphrase is weak: minimum 8 characters recommended");
+            return false;
+        }
+        if (passphrase.length() < 12)
+        {
+            Logger::log(Logger::Level::WARNING, "Passphrase could be stronger: 12+ characters recommended");
+        }
+        return true;
+    }
+
+    bool is_secure_path(const std::filesystem::path &path)
+    {
+        std::string path_str = path.string();
+        if (path_str.find("..") != std::string::npos)
+        {
+            Logger::log(Logger::Level::ERROR, "Potential path traversal detected in: " + path_str);
+            return false;
+        }
+        return true;
+    }
+
+    void check_file_permissions(const std::filesystem::path &path, bool should_be_private)
+    {
+#ifndef _WIN32
+        auto perms = std::filesystem::status(path).permissions();
+        using std::filesystem::perms;
+
+        bool world_readable = (perms & perms::others_read) != perms::none;
+        bool world_writable = (perms & perms::others_write) != perms::none;
+        bool group_readable = (perms & perms::group_read) != perms::none;
+        bool group_writable = (perms & perms::group_write) != perms::none;
+
+        if (should_be_private && (world_readable || world_writable || group_readable || group_writable))
+        {
+            Logger::log(Logger::Level::WARNING,
+                        "Security warning: " + path.string() + " has overly permissive permissions.");
+            Logger::log(Logger::Level::WARNING,
+                        "Consider running: chmod 600 " + path.string());
+        }
+#endif
+    }
+
+    std::filesystem::path create_secure_temp_file(const std::string &prefix)
+    {
+        auto temp_dir = std::filesystem::temp_directory_path();
+        std::string temp_name = prefix + "_" + std::to_string(randombytes_random()) + ".tmp";
+        auto temp_path = temp_dir / temp_name;
+
+#ifndef _WIN32
+        int fd = ::open(temp_path.c_str(), O_RDWR | O_CREAT | O_EXCL, 0600);
+        if (fd < 0)
+            throw std::system_error(errno, std::generic_category(), "Failed to create secure temp file");
+        ::close(fd);
+#else
+        std::ofstream f(temp_path, std::ios::binary);
+        f.close();
+#endif
+
+        return temp_path;
     }
 }

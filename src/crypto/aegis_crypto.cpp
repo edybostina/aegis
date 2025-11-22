@@ -73,17 +73,17 @@ namespace aegis
 
         if (compress)
         {
-            // create a temporary compressed file
-            std::string temp_compressed = out.string() + ".compressed_tmp";
+            auto temp_compressed = utils::create_secure_temp_file("aegis_compress_");
             if (verbose)
-                utils::Logger::log(utils::Logger::Level::INFO, "Compressing input file to temporary file: " + temp_compressed);
+                utils::Logger::log(utils::Logger::Level::INFO, "Compressing input file to secure temporary file");
             compress_file(in, temp_compressed);
             close(fd_in);
             fd_in = io::open_readonly(temp_compressed);
-            std::filesystem::remove(temp_compressed);
 
             if (verbose)
                 utils::Logger::log(utils::Logger::Level::INFO, "Compression completed.");
+
+            std::filesystem::remove(temp_compressed);
         }
 
         // write the header
@@ -174,8 +174,8 @@ namespace aegis
         // Read header
         std::array<unsigned char, 6> magic{};
         auto m = io::read_chunk(fd_in, magic.size());
-        if (m.size() != magic.size() || std::memcmp(m.data(), MAGIC, 6) != 0)
-            throw std::runtime_error("Not an Aegis file (bad magic)");
+        if (m.size() != magic.size() || sodium_memcmp(m.data(), MAGIC, 6) != 0)
+            throw std::runtime_error("Invalid or corrupted file format");
 
         auto ver = io::read_chunk(fd_in, 1);
         if (ver.size() != 1 || ver[0] != VERSION)
@@ -228,7 +228,7 @@ namespace aegis
             unsigned char tag = 0;
             if (crypto_secretstream_xchacha20poly1305_pull(&state, outbuf.data(), &outlen, &tag,
                                                            enc.data(), enc.size(), nullptr, 0) != 0)
-                throw std::runtime_error("Decryption failed (corrupt or wrong passphrase)");
+                throw std::runtime_error("Authentication failed: file may be corrupted or passphrase/key is incorrect");
             if (tag == crypto_secretstream_xchacha20poly1305_TAG_FINAL)
                 done = true;
             io::write_all(fd_out, outbuf.data(), static_cast<size_t>(outlen));
@@ -248,10 +248,11 @@ namespace aegis
             // decompress the output file in place
             close(fd_out);
             if (verbose)
-                utils::Logger::log(utils::Logger::Level::INFO, "Decompressing output file in place...");
-            decompress_file(out, out.string() + ".decompressed_tmp");
+                utils::Logger::log(utils::Logger::Level::INFO, "Decompressing output file...");
+            auto temp_decompressed = utils::create_secure_temp_file("aegis_decompress_");
+            decompress_file(out, temp_decompressed);
             std::filesystem::remove(out);
-            std::filesystem::rename(out.string() + ".decompressed_tmp", out);
+            std::filesystem::rename(temp_decompressed, out);
             if (verbose)
                 utils::Logger::log(utils::Logger::Level::INFO, "Decompression completed.");
         }
@@ -282,8 +283,8 @@ namespace aegis
         // Read header
         std::array<unsigned char, 6> magic{};
         auto m = io::read_chunk(fd_in, magic.size());
-        if (m.size() != magic.size() || std::memcmp(m.data(), MAGIC, 6) != 0)
-            throw std::runtime_error("Not an Aegis file (bad magic)");
+        if (m.size() != magic.size() || sodium_memcmp(m.data(), MAGIC, 6) != 0)
+            throw std::runtime_error("Invalid or corrupted file format");
 
         auto ver = io::read_chunk(fd_in, 1);
         if (ver.size() != 1 || ver[0] != VERSION)
@@ -521,6 +522,43 @@ namespace aegis
         std::array<unsigned char, crypto_secretbox_KEYBYTES> key{};
         randombytes_buf(key.data(), key.size());
         io::write_all(fd, key.data(), key.size());
+        sodium_memzero(key.data(), key.size());
+        close(fd);
+
+        utils::check_file_permissions(keyfile, true);
+    }
+
+    void print_file_metadata(const std::filesystem::path &in)
+    {
+        int fd = io::open_readonly(in);
+
+        // read header
+        std::array<unsigned char, 6> magic{};
+        auto m = io::read_chunk(fd, magic.size());
+        if (m.size() != magic.size() || sodium_memcmp(m.data(), MAGIC, 6) != 0)
+            throw std::runtime_error("Invalid or corrupted file format");
+
+        auto ver = io::read_chunk(fd, 1);
+        if (ver.size() != 1)
+            throw std::runtime_error("Truncated version");
+
+        auto comp = io::read_chunk(fd, 1);
+        if (comp.size() != 1)
+            throw std::runtime_error("Truncated compression flag");
+
+        std::array<unsigned char, 16> salt{};
+        auto saltv = io::read_chunk(fd, salt.size());
+        if (saltv.size() != salt.size())
+            throw std::runtime_error("Truncated salt");
+
+        std::cout << "File: " << in.string() << "\n";
+        std::cout << "Version: " << static_cast<int>(ver[0]) << "\n";
+        std::cout << "Compressed: " << (comp[0] == 0x01 ? "Yes" : "No") << "\n";
+        std::cout << "Salt: ";
+        for (const auto &b : saltv)
+            std::cout << std::hex << static_cast<int>(b) << " ";
+        std::cout << std::dec << "\n";
+
         close(fd);
     }
 

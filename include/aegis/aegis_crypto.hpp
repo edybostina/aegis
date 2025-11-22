@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <string>
 #include <filesystem>
+#include <memory>
 
 #include <sodium.h>
 #include <zlib.h>
@@ -10,11 +11,42 @@
 namespace
 {
     constexpr const char *MAGIC = "AEGIS\x00"; // 6 bytes, includes null sentinel
-    constexpr unsigned char VERSION = 3;
+    constexpr unsigned char VERSION = 4;
 }
 
 namespace aegis
 {
+    class SecureString
+    {
+    private:
+        std::string data_;
+
+    public:
+        SecureString() = default;
+        explicit SecureString(const std::string &s) : data_(s) {}
+        explicit SecureString(const char *s) : data_(s) {}
+        ~SecureString() { sodium_memzero(data_.data(), data_.size()); }
+
+        SecureString(const SecureString &) = delete;
+        SecureString &operator=(const SecureString &) = delete;
+
+        SecureString(SecureString &&other) noexcept : data_(std::move(other.data_)) {}
+        SecureString &operator=(SecureString &&other) noexcept
+        {
+            if (this != &other)
+            {
+                sodium_memzero(data_.data(), data_.size());
+                data_ = std::move(other.data_);
+            }
+            return *this;
+        }
+
+        const std::string &str() const { return data_; }
+        const char *c_str() const { return data_.c_str(); }
+        size_t size() const { return data_.size(); }
+        bool empty() const { return data_.empty(); }
+    };
+
     struct KdfParams
     {
         unsigned long long ops_limit; // crypto_pwhash_OPSLIMIT_INTERACTIVE
@@ -68,7 +100,7 @@ namespace aegis
                      bool keyfile_used = false,
                      bool verbose = false);
 
-    // Encrypt all files in a directory (recursively)               
+    // Encrypt all files in a directory (recursively)
     void encrypt_directory(const std::filesystem::path &in_dir,
                            const std::filesystem::path &out_dir,
                            const std::string &passphrase,
@@ -96,5 +128,8 @@ namespace aegis
 
     // Generate a new random key file
     void generate_key_file(const std::filesystem::path &keyfile);
+
+    // Print all metadata of an encrypted file
+    void print_file_metadata(const std::filesystem::path &in);
 
 }

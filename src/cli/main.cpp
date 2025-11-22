@@ -26,16 +26,17 @@ static void usage()
     utils::Logger::log(utils::Logger::Level::INFO, "  dec      Decrypt a file/directory");
     utils::Logger::log(utils::Logger::Level::INFO, "  keygen   Generate a random key file");
     utils::Logger::log(utils::Logger::Level::INFO, "  verify   Verify integrity of an encrypted file");
+    utils::Logger::log(utils::Logger::Level::INFO, "  info     Print metadata of an encrypted file");
     utils::Logger::log(utils::Logger::Level::INFO, "Options:");
-    utils::Logger::log(utils::Logger::Level::INFO, "  -i <file>    Input file (required for enc/dec/verify)");
-    utils::Logger::log(utils::Logger::Level::INFO, "  -o <file>    Output file (required for enc/dec/keygen)");
-    utils::Logger::log(utils::Logger::Level::INFO, "  -p <pass>    Passphrase (if omitted, will prompt; not needed if -k is used)");
-    utils::Logger::log(utils::Logger::Level::INFO, "  -k <file>    Key file (32 random bytes; if used, -p is not needed)");
-    utils::Logger::log(utils::Logger::Level::INFO, "  -z           Compress/Decompress file (before encryption / after decryption)");
-    utils::Logger::log(utils::Logger::Level::INFO, "  -r           Recursive (for directory encryption/decryption)");
-    utils::Logger::log(utils::Logger::Level::INFO, "  -v           Verbose output (extra logging)");
-    utils::Logger::log(utils::Logger::Level::INFO, "  -h, --help   Show this help message");
-    utils::Logger::log(utils::Logger::Level::INFO, "  --version    Show version information");
+    utils::Logger::log(utils::Logger::Level::INFO, "  -i, --input <file>      Input file (required for enc/dec/verify)");
+    utils::Logger::log(utils::Logger::Level::INFO, "  -o, --output <file>     Output file (required for enc/dec/keygen)");
+    utils::Logger::log(utils::Logger::Level::INFO, "  -p, --pass <pass>       Passphrase (if omitted, will prompt; not needed if -k is used)");
+    utils::Logger::log(utils::Logger::Level::INFO, "  -k, --key <file>        Key file (32 random bytes; if used, -p is not needed)");
+    utils::Logger::log(utils::Logger::Level::INFO, "  -z, --compress          Compress/Decompress file (before encryption / after decryption)");
+    utils::Logger::log(utils::Logger::Level::INFO, "  -r, --recursive         Recursive (for directory encryption/decryption)");
+    utils::Logger::log(utils::Logger::Level::INFO, "  -v, --verbose           Verbose output (extra logging)");
+    utils::Logger::log(utils::Logger::Level::INFO, "  -h, --help              Show this help message");
+    utils::Logger::log(utils::Logger::Level::INFO, "  --version               Show version information");
     utils::Logger::log(utils::Logger::Level::INFO, "Exit codes:");
     utils::Logger::log(utils::Logger::Level::INFO, "  0   Success");
     utils::Logger::log(utils::Logger::Level::INFO, "  1   Invalid usage or arguments");
@@ -64,7 +65,7 @@ static void handle_basic_cases(int argc, char **argv)
 
 static void handle_mode_type(const std::string &mode)
 {
-    const std::array<std::string, 4> modes = {"enc", "dec", "keygen", "verify"};
+    const std::array<std::string, 5> modes = {"enc", "dec", "keygen", "verify", "info"};
     if (std::find(std::begin(modes), std::end(modes), mode) == std::end(modes))
     {
         usage();
@@ -90,19 +91,19 @@ int main(int argc, char **argv)
         for (int i = 2; i < argc; ++i)
         {
             std::string arg = argv[i];
-            if (arg == "-i" && i + 1 < argc)
+            if ((arg == "-i" || arg == "--input") && i + 1 < argc)
             {
                 in = argv[++i];
             }
-            else if (arg == "-o" && i + 1 < argc)
+            else if ((arg == "-o" || arg == "--output") && i + 1 < argc)
             {
                 out = argv[++i];
             }
-            else if (arg == "-p" && i + 1 < argc)
+            else if ((arg == "-p" || arg == "--pass") && i + 1 < argc)
             {
                 pass = argv[++i];
             }
-            else if (arg == "-k" && i + 1 < argc)
+            else if ((arg == "-k" || arg == "--key") && i + 1 < argc)
             {
                 std::string keyfile = argv[++i];
                 if (!utils::file_exists(keyfile))
@@ -119,15 +120,15 @@ int main(int argc, char **argv)
                 }
                 keyfile_used = true;
             }
-            else if (arg == "-z")
+            else if (arg == "-z" || arg == "--compress")
             {
                 compress = true;
             }
-            else if (arg == "-r")
+            else if (arg == "-r" || arg == "--recursive")
             {
                 recursive = true;
             }
-            else if (arg == "-v")
+            else if (arg == "-v" || arg == "--verbose")
             {
                 verbose = true;
             }
@@ -138,7 +139,7 @@ int main(int argc, char **argv)
             }
         }
 
-        if ((mode == "enc" || mode == "dec") && in.empty())
+        if ((mode == "enc" || mode == "dec" || mode == "info") && in.empty())
         {
             utils::Logger::log(utils::Logger::Level::ERROR, "Input file is required for mode " + mode);
             return INVALID_USAGE;
@@ -155,6 +156,23 @@ int main(int argc, char **argv)
             {
                 utils::Logger::log(utils::Logger::Level::ERROR, "Passphrase cannot be empty");
                 return INVALID_USAGE;
+            }
+            if (mode == "enc")
+            {
+                (void)utils::validate_passphrase_strength(pass);
+            }
+        }
+
+        if (keyfile_used && (mode == "enc" || mode == "dec"))
+        {
+            for (int i = 2; i < argc; ++i)
+            {
+                std::string arg = argv[i];
+                if ((arg == "-k" || arg == "--key") && i + 1 < argc)
+                {
+                    utils::check_file_permissions(argv[i + 1], true);
+                    break;
+                }
             }
         }
         aegis::init_crypto();
@@ -233,6 +251,10 @@ int main(int argc, char **argv)
             else
                 utils::Logger::log(utils::Logger::Level::ERROR, "File integrity verification failed (corrupt or wrong passphrase/key).");
             return valid ? SUCCESS : VERIFY_FAILED;
+        }
+        else if (mode == "info")
+        {
+            aegis::print_file_metadata(in);
         }
 
         return SUCCESS;
