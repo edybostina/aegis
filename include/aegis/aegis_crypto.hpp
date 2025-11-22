@@ -25,7 +25,11 @@ namespace aegis
         SecureString() = default;
         explicit SecureString(const std::string &s) : data_(s) {}
         explicit SecureString(const char *s) : data_(s) {}
-        ~SecureString() { sodium_memzero(data_.data(), data_.size()); }
+        ~SecureString()
+        {
+            if (!data_.empty() && data_.data() != nullptr)
+                sodium_memzero(data_.data(), data_.size());
+        }
 
         SecureString(const SecureString &) = delete;
         SecureString &operator=(const SecureString &) = delete;
@@ -35,7 +39,8 @@ namespace aegis
         {
             if (this != &other)
             {
-                sodium_memzero(data_.data(), data_.size());
+                if (!data_.empty() && data_.data() != nullptr)
+                    sodium_memzero(data_.data(), data_.size());
                 data_ = std::move(other.data_);
             }
             return *this;

@@ -248,10 +248,12 @@ namespace aegis
         }
         utils::progress_bar(100, "Decrypting:", ""); // ensure 100% at end
 
+        close(fd_in);
+        close(fd_out);
+
         if (compress && file_compressed)
         {
             // decompress the output file in place
-            close(fd_out);
             if (verbose)
                 utils::Logger::log(utils::Logger::Level::INFO, "Decompressing output file...");
             auto temp_decompressed = utils::create_secure_temp_file("aegis_decompress_");
@@ -261,8 +263,6 @@ namespace aegis
             if (verbose)
                 utils::Logger::log(utils::Logger::Level::INFO, "Decompression completed.");
         }
-        close(fd_in);
-        close(fd_out);
         if (verbose)
             utils::Logger::log(utils::Logger::Level::INFO, "Decryption completed.");
     }
