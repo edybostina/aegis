@@ -5,6 +5,7 @@
 #include <sodium.h>
 #include <iostream>
 #include <array>
+#include <filesystem>
 
 int main()
 {
@@ -13,17 +14,23 @@ int main()
     KdfParams params{crypto_pwhash_OPSLIMIT_MIN, crypto_pwhash_MEMLIMIT_MIN};
     const std::string pass = "testpass";
 
-    std::ofstream f("/tmp/aegis_in.txt");
+    // Use cross-platform temporary directory
+    auto temp_dir = std::filesystem::temp_directory_path();
+    auto in_file = temp_dir / "aegis_in.txt";
+    auto enc_file = temp_dir / "aegis_in.txt.enc";
+    auto out_file = temp_dir / "aegis_out.txt";
+
+    std::ofstream f(in_file);
     f << "hello aegis";
     f.close();
 
     std::array<unsigned char, 32> empty_key{};
     bool keyfile_used = false;
 
-    encrypt_file("/tmp/aegis_in.txt", "/tmp/aegis_in.txt.enc", pass, params, empty_key, keyfile_used, true);
-    decrypt_file("/tmp/aegis_in.txt.enc", "/tmp/aegis_out.txt", pass, params, empty_key, keyfile_used, true);
+    encrypt_file(in_file, enc_file, pass, params, empty_key, keyfile_used, false);
+    decrypt_file(enc_file, out_file, pass, params, empty_key, keyfile_used, false);
 
-    std::ifstream g("/tmp/aegis_out.txt");
+    std::ifstream g(out_file);
     std::string out;
     std::getline(g, out);
     if (out != "hello aegis")
@@ -32,9 +39,9 @@ int main()
         return 1;
     }
 
-    std::remove("/tmp/aegis_in.txt");
-    std::remove("/tmp/aegis_in.txt.enc");
-    std::remove("/tmp/aegis_out.txt");
+    std::filesystem::remove(in_file);
+    std::filesystem::remove(enc_file);
+    std::filesystem::remove(out_file);
     std::cout << "Roundtrip test passed" << std::endl;
     return 0;
 }
