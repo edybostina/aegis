@@ -15,6 +15,7 @@
 #define close _close
 #define read _read
 #define write _write
+typedef int ssize_t;
 #else
 #include <unistd.h>
 #endif

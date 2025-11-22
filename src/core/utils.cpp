@@ -7,6 +7,9 @@
 #include <sodium.h>
 #ifdef _WIN32
 #include <windows.h>
+#ifdef ERROR
+#undef ERROR
+#endif
 #else
 #include <unistd.h>
 #include <termios.h>

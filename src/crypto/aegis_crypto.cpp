@@ -6,7 +6,9 @@
 #include <stdexcept>
 #include <cstring>
 #include <fcntl.h>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 #include <iostream>
 
 namespace aegis
