@@ -16,14 +16,32 @@ If you wish to build from source, follow these steps:
 2. `git clone https://github.com/edybostina/aegis.git`
 
 3. `cd aegis`
-    - If you wish to build an older version, checkout the desired tag.
+
+   - If you wish to build an older version, checkout the desired tag.
 
 4. `chmod +x build.sh`
 
-5. `./build.sh`
-    - The default build directory is `build/`. You can change it by running `./build.sh <build_dir>`.
+5. Build the project:
+
+   **Unix/Linux/macOS:**
+
+   ```bash
+   ./build.sh
+   ```
+
+   - The default build directory is `build/`. You can change it by running `./build.sh <build_dir>`.
+
+   **Windows (PowerShell):**
+
+   ```powershell
+   .\build.ps1
+   ```
+
+   - Optionally specify build directory: `.\build.ps1 -BuildDir custom_build`
+   - For Debug build: `.\build.ps1 -BuildType Debug`
 
 Notes:
+
 - The build script uses CMake to configure and build the project.
 - The resulting executable will be located in the specified build directory.
 - If you encounter any issues, please refer to the [troubleshooting section](#troubleshooting).
@@ -32,9 +50,17 @@ Notes:
 
 To encrypt a file:
 
+**Unix/Linux/macOS:**
+
 ```bash
 ./aegis enc -i secret.txt -o secret.txt.aegis
-````
+```
+
+**Windows:**
+
+```powershell
+.\aegis.exe enc -i secret.txt -o secret.txt.aegis
+```
 
 To decrypt a file:
 
@@ -88,10 +114,21 @@ Depending on your platform, you may need to install the following dependencies:
   brew install libsodium cmake zlib
 ```
 
-- Windows (vcpkg): coming soon...
+- Windows (vcpkg):
+
+```powershell
+  # Install vcpkg if not already installed
+  # See: https://vcpkg.io/en/getting-started.html
+
+  vcpkg install libsodium zlib
+```
+
+Note: On Windows, you can also use pre-compiled libsodium binaries or build from source.
 
 ## Troubleshooting
+
 If you encounter issues during installation, consider the following steps:
+
 - Ensure all prerequisites are installed correctly.
 - Most issues arise from missing dependencies or improper library linking by CMake.
 - Review the build output for any error messages and address them accordingly.

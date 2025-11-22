@@ -24,8 +24,8 @@ namespace aegis::utils
         std::cerr << label;
         std::cerr.flush();
 
-        // why is this still here
 #ifdef _WIN32
+        // Windows: Use console API to disable echo
         HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
         DWORD mode = 0;
         GetConsoleMode(hStdin, &mode);
@@ -169,8 +169,11 @@ namespace aegis::utils
             throw std::system_error(errno, std::generic_category(), "Failed to create secure temp file");
         ::close(fd);
 #else
-        std::ofstream f(temp_path, std::ios::binary);
-        f.close();
+        // Windows: Create file with owner-only permissions
+        int fd = ::_open(temp_path.string().c_str(), _O_RDWR | _O_CREAT | _O_EXCL | _O_BINARY, _S_IREAD | _S_IWRITE);
+        if (fd < 0)
+            throw std::system_error(errno, std::generic_category(), "Failed to create secure temp file");
+        ::_close(fd);
 #endif
 
         return temp_path;

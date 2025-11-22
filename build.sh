@@ -23,16 +23,15 @@ case "$uname_s" in
 		fi
 		;;
 	Linux)
-		
 		;;
 	MINGW*|MSYS*|CYGWIN*)
-        # no idea if this works. for now, its commented out
-		#if [ -n "${VCPKG_ROOT:-}" ] && [ -f "$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" ]; then
-		#	CMAKE_ARGS+=("-DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
-		#fi
+		# Windows via Git Bash/MSYS2
+		if [ -n "${VCPKG_ROOT:-}" ] && [ -f "$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" ]; then
+			CMAKE_ARGS+=("-DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
+		fi
 		;;
 	*)
-		# what os do you have bro? rely on default discovery
+		# Other Unix-like systems: rely on default discovery
 		;;
 esac
 
