@@ -16,42 +16,6 @@ namespace
 
 namespace aegis
 {
-    class SecureString
-    {
-    private:
-        std::string data_;
-
-    public:
-        SecureString() = default;
-        explicit SecureString(const std::string &s) : data_(s) {}
-        explicit SecureString(const char *s) : data_(s) {}
-        ~SecureString()
-        {
-            if (!data_.empty() && data_.data() != nullptr)
-                sodium_memzero(const_cast<char *>(data_.data()), data_.size());
-        }
-
-        SecureString(const SecureString &) = delete;
-        SecureString &operator=(const SecureString &) = delete;
-
-        SecureString(SecureString &&other) noexcept : data_(std::move(other.data_)) {}
-        SecureString &operator=(SecureString &&other) noexcept
-        {
-            if (this != &other)
-            {
-                if (!data_.empty() && data_.data() != nullptr)
-                    sodium_memzero(const_cast<char *>(data_.data()), data_.size());
-                data_ = std::move(other.data_);
-            }
-            return *this;
-        }
-
-        const std::string &str() const { return data_; }
-        const char *c_str() const { return data_.c_str(); }
-        size_t size() const { return data_.size(); }
-        bool empty() const { return data_.empty(); }
-    };
-
     struct KdfParams
     {
         unsigned long long ops_limit; // crypto_pwhash_OPSLIMIT_INTERACTIVE

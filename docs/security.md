@@ -21,7 +21,7 @@ Aegis implements multiple security layers to protect your encrypted data. This d
 
 ### 1. Memory Security
 - **Secure Memory Wiping**: All sensitive data (keys, passphrases) is wiped from memory using `sodium_memzero()` after use
-- **SecureString Class**: Automatically wipes string data on destruction to prevent data leakage
+- **Explicit Key Zeroing**: Cryptographic keys are explicitly zeroed after use to prevent data leakage
 - **No Plaintext Copies**: Keys and passphrases are not copied unnecessarily
 
 ### 2. Constant-Time Operations
