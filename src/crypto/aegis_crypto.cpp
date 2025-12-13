@@ -440,8 +440,10 @@ namespace aegis
             auto r = io::read_chunk(fd_in, CHUNK);
             if (r.empty())
                 break;
-            strm.avail_in = r.size();
-            strm.next_in = r.data();
+
+            inbuf.assign(r.begin(), r.end());
+            strm.avail_in = inbuf.size();
+            strm.next_in = inbuf.data();
 
             do
             {
@@ -498,17 +500,20 @@ namespace aegis
             auto r = io::read_chunk(fd_in, CHUNK);
             if (r.empty())
                 break;
-            strm.avail_in = r.size();
-            strm.next_in = r.data();
+
+            inbuf.assign(r.begin(), r.end());
+            strm.avail_in = inbuf.size();
+            strm.next_in = inbuf.data();
 
             do
             {
                 strm.avail_out = outbuf.size();
                 strm.next_out = outbuf.data();
-                if (inflate(&strm, Z_NO_FLUSH) == Z_STREAM_ERROR)
+                int ret = inflate(&strm, Z_NO_FLUSH);
+                if (ret == Z_STREAM_ERROR || ret == Z_DATA_ERROR || ret == Z_MEM_ERROR)
                 {
                     inflateEnd(&strm);
-                    throw std::runtime_error("inflate failed");
+                    throw std::runtime_error("inflate failed with error: " + std::to_string(ret));
                 }
                 size_t have = outbuf.size() - strm.avail_out;
                 if (have > 0)
