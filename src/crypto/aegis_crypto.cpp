@@ -76,9 +76,13 @@ namespace aegis
             utils::Logger::log(utils::Logger::Level::INFO, std::string("Key source: ") + (keyfile_used ? "keyfile" : "passphrase"));
         }
 
+        std::filesystem::path temp_compressed;
+        bool used_temp_file = false;
+
         if (compress)
         {
-            auto temp_compressed = utils::create_secure_temp_file("aegis_compress_");
+            temp_compressed = utils::create_secure_temp_file("aegis_compress_");
+            used_temp_file = true;
             if (verbose)
                 utils::Logger::log(utils::Logger::Level::INFO, "Compressing input file to secure temporary file");
             compress_file(in, temp_compressed);
@@ -87,8 +91,6 @@ namespace aegis
 
             if (verbose)
                 utils::Logger::log(utils::Logger::Level::INFO, "Compression completed.");
-
-            std::filesystem::remove(temp_compressed);
         }
 
         // write the header
@@ -148,6 +150,9 @@ namespace aegis
 
         close(fd_in);
         close(fd_out);
+
+        if (used_temp_file && std::filesystem::exists(temp_compressed))
+            std::filesystem::remove(temp_compressed);
 
         if (verbose)
             utils::Logger::log(utils::Logger::Level::INFO, "Encryption completed.");
@@ -276,7 +281,7 @@ namespace aegis
     {
         if (verbose)
             utils::Logger::log(utils::Logger::Level::INFO, "Starting the verification process...");
-        // Same as decrypt_file but without writing output
+            
         int fd_in = io::open_readonly(in);
 
         if (verbose)

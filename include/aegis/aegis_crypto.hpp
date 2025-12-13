@@ -28,7 +28,7 @@ namespace aegis
         ~SecureString()
         {
             if (!data_.empty() && data_.data() != nullptr)
-                sodium_memzero(data_.data(), data_.size());
+                sodium_memzero(const_cast<char *>(data_.data()), data_.size());
         }
 
         SecureString(const SecureString &) = delete;
@@ -40,7 +40,7 @@ namespace aegis
             if (this != &other)
             {
                 if (!data_.empty() && data_.data() != nullptr)
-                    sodium_memzero(data_.data(), data_.size());
+                    sodium_memzero(const_cast<char *>(data_.data()), data_.size());
                 data_ = std::move(other.data_);
             }
             return *this;
