@@ -238,7 +238,11 @@ namespace aegis
             unsigned char tag = 0;
             if (crypto_secretstream_xchacha20poly1305_pull(&state, outbuf.data(), &outlen, &tag,
                                                            enc.data(), enc.size(), nullptr, 0) != 0)
+            {
+                close(fd_in);
+                close(fd_out);
                 throw std::runtime_error("Authentication failed: file may be corrupted or passphrase/key is incorrect");
+            }
             if (tag == crypto_secretstream_xchacha20poly1305_TAG_FINAL)
                 done = true;
             io::write_all(fd_out, outbuf.data(), static_cast<size_t>(outlen));
