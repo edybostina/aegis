@@ -96,7 +96,7 @@ namespace aegis
         // write the header
         // format : magic | version | compress | salt | stream header
         io::write_all(fd_out, reinterpret_cast<const unsigned char *>(MAGIC), 6);
-        io::write_all(fd_out, &VERSION, 1);
+        io::write_all(fd_out, &CURRENT_VERSION, 1);
         io::write_all(fd_out, reinterpret_cast<const unsigned char *>(compress ? "\x01" : "\x00"), 1); // 1 byte compress flag
 
         std::array<unsigned char, 16> salt{};
@@ -188,8 +188,12 @@ namespace aegis
             throw std::runtime_error("Invalid or corrupted file format");
 
         auto ver = io::read_chunk(fd_in, 1);
-        if (ver.size() != 1 || ver[0] != VERSION)
-            throw std::runtime_error("Unsupported Aegis version");
+        if (ver.size() != 1) 
+            throw std::runtime_error("Truncated version");
+
+        if (ver[0] < MIN_SUPPORTED_VERSION || ver[0] > CURRENT_VERSION) {
+            throw std::runtime_error("Unsupported Aegis version: " + std::to_string(ver[0]));
+        }
 
         auto comp = io::read_chunk(fd_in, 1);
         if (comp.size() != 1 || (comp[0] != 0x00 && comp[0] != 0x01))
@@ -301,9 +305,12 @@ namespace aegis
             throw std::runtime_error("Invalid or corrupted file format");
 
         auto ver = io::read_chunk(fd_in, 1);
-        if (ver.size() != 1 || ver[0] != VERSION)
-            throw std::runtime_error("Unsupported Aegis version");
+        if (ver.size() != 1) 
+            throw std::runtime_error("Truncated version");
 
+        if (ver[0] < MIN_SUPPORTED_VERSION || ver[0] > CURRENT_VERSION) {
+            throw std::runtime_error("Unsupported Aegis version: " + std::to_string(ver[0]));
+        }
         auto comp = io::read_chunk(fd_in, 1);
         if (comp.size() != 1 || (comp[0] != 0x00 && comp[0] != 0x01))
             throw std::runtime_error("Unsupported compression flag");

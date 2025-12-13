@@ -18,7 +18,7 @@ enum ExitCodes
 
 static void usage()
 {
-    utils::Logger::log(utils::Logger::Level::INFO, "Aegis v0." + std::to_string((int)VERSION) + ".0 — file encryption (XChaCha20-Poly1305 via libsodium)");
+    utils::Logger::log(utils::Logger::Level::INFO, "Aegis v0." + std::to_string((int)CURRENT_VERSION) + ".0 — file encryption (XChaCha20-Poly1305 via libsodium)");
     utils::Logger::log(utils::Logger::Level::INFO, "Usage:");
     utils::Logger::log(utils::Logger::Level::INFO, "  aegis <mode> [options]");
     utils::Logger::log(utils::Logger::Level::INFO, "Modes:");
@@ -55,7 +55,7 @@ static void handle_basic_cases(int argc, char **argv)
         }
         if (argc == 2 && std::string(argv[1]) == "--version")
         {
-            utils::Logger::log(utils::Logger::Level::INFO, "Aegis version 0." + std::to_string((int)VERSION) + ".0");
+            utils::Logger::log(utils::Logger::Level::INFO, "Aegis version 0." + std::to_string((int)CURRENT_VERSION) + ".0");
             exit(SUCCESS);
         }
         usage();
