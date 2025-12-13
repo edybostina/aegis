@@ -281,7 +281,7 @@ namespace aegis
     {
         if (verbose)
             utils::Logger::log(utils::Logger::Level::INFO, "Starting the verification process...");
-            
+
         int fd_in = io::open_readonly(in);
 
         if (verbose)
@@ -299,6 +299,10 @@ namespace aegis
         auto ver = io::read_chunk(fd_in, 1);
         if (ver.size() != 1 || ver[0] != VERSION)
             throw std::runtime_error("Unsupported Aegis version");
+
+        auto comp = io::read_chunk(fd_in, 1);
+        if (comp.size() != 1 || (comp[0] != 0x00 && comp[0] != 0x01))
+            throw std::runtime_error("Unsupported compression flag");
 
         std::array<unsigned char, 16> salt{};
         auto saltv = io::read_chunk(fd_in, salt.size());
