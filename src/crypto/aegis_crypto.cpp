@@ -6,7 +6,12 @@
 #include <stdexcept>
 #include <cstring>
 #include <fcntl.h>
+#ifdef _WIN32
+#include <io.h>
+#define close _close
+#else
 #include <unistd.h>
+#endif
 #include <iostream>
 
 namespace aegis
@@ -71,9 +76,13 @@ namespace aegis
             utils::Logger::log(utils::Logger::Level::INFO, std::string("Key source: ") + (keyfile_used ? "keyfile" : "passphrase"));
         }
 
+        std::filesystem::path temp_compressed;
+        bool used_temp_file = false;
+
         if (compress)
         {
-            auto temp_compressed = utils::create_secure_temp_file("aegis_compress_");
+            temp_compressed = utils::create_secure_temp_file("aegis_compress_");
+            used_temp_file = true;
             if (verbose)
                 utils::Logger::log(utils::Logger::Level::INFO, "Compressing input file to secure temporary file");
             compress_file(in, temp_compressed);
@@ -82,8 +91,6 @@ namespace aegis
 
             if (verbose)
                 utils::Logger::log(utils::Logger::Level::INFO, "Compression completed.");
-
-            std::filesystem::remove(temp_compressed);
         }
 
         // write the header
@@ -143,6 +150,9 @@ namespace aegis
 
         close(fd_in);
         close(fd_out);
+
+        if (used_temp_file && std::filesystem::exists(temp_compressed))
+            std::filesystem::remove(temp_compressed);
 
         if (verbose)
             utils::Logger::log(utils::Logger::Level::INFO, "Encryption completed.");
@@ -228,7 +238,11 @@ namespace aegis
             unsigned char tag = 0;
             if (crypto_secretstream_xchacha20poly1305_pull(&state, outbuf.data(), &outlen, &tag,
                                                            enc.data(), enc.size(), nullptr, 0) != 0)
+            {
+                close(fd_in);
+                close(fd_out);
                 throw std::runtime_error("Authentication failed: file may be corrupted or passphrase/key is incorrect");
+            }
             if (tag == crypto_secretstream_xchacha20poly1305_TAG_FINAL)
                 done = true;
             io::write_all(fd_out, outbuf.data(), static_cast<size_t>(outlen));
@@ -243,10 +257,12 @@ namespace aegis
         }
         utils::progress_bar(100, "Decrypting:", ""); // ensure 100% at end
 
+        close(fd_in);
+        close(fd_out);
+
         if (compress && file_compressed)
         {
             // decompress the output file in place
-            close(fd_out);
             if (verbose)
                 utils::Logger::log(utils::Logger::Level::INFO, "Decompressing output file...");
             auto temp_decompressed = utils::create_secure_temp_file("aegis_decompress_");
@@ -256,8 +272,6 @@ namespace aegis
             if (verbose)
                 utils::Logger::log(utils::Logger::Level::INFO, "Decompression completed.");
         }
-        close(fd_in);
-        close(fd_out);
         if (verbose)
             utils::Logger::log(utils::Logger::Level::INFO, "Decryption completed.");
     }
@@ -271,7 +285,7 @@ namespace aegis
     {
         if (verbose)
             utils::Logger::log(utils::Logger::Level::INFO, "Starting the verification process...");
-        // Same as decrypt_file but without writing output
+
         int fd_in = io::open_readonly(in);
 
         if (verbose)
@@ -289,6 +303,10 @@ namespace aegis
         auto ver = io::read_chunk(fd_in, 1);
         if (ver.size() != 1 || ver[0] != VERSION)
             throw std::runtime_error("Unsupported Aegis version");
+
+        auto comp = io::read_chunk(fd_in, 1);
+        if (comp.size() != 1 || (comp[0] != 0x00 && comp[0] != 0x01))
+            throw std::runtime_error("Unsupported compression flag");
 
         std::array<unsigned char, 16> salt{};
         auto saltv = io::read_chunk(fd_in, salt.size());
@@ -435,8 +453,10 @@ namespace aegis
             auto r = io::read_chunk(fd_in, CHUNK);
             if (r.empty())
                 break;
-            strm.avail_in = r.size();
-            strm.next_in = r.data();
+
+            inbuf.assign(r.begin(), r.end());
+            strm.avail_in = inbuf.size();
+            strm.next_in = inbuf.data();
 
             do
             {
@@ -493,17 +513,20 @@ namespace aegis
             auto r = io::read_chunk(fd_in, CHUNK);
             if (r.empty())
                 break;
-            strm.avail_in = r.size();
-            strm.next_in = r.data();
+
+            inbuf.assign(r.begin(), r.end());
+            strm.avail_in = inbuf.size();
+            strm.next_in = inbuf.data();
 
             do
             {
                 strm.avail_out = outbuf.size();
                 strm.next_out = outbuf.data();
-                if (inflate(&strm, Z_NO_FLUSH) == Z_STREAM_ERROR)
+                int ret = inflate(&strm, Z_NO_FLUSH);
+                if (ret == Z_STREAM_ERROR || ret == Z_DATA_ERROR || ret == Z_MEM_ERROR)
                 {
                     inflateEnd(&strm);
-                    throw std::runtime_error("inflate failed");
+                    throw std::runtime_error("inflate failed with error: " + std::to_string(ret));
                 }
                 size_t have = outbuf.size() - strm.avail_out;
                 if (have > 0)

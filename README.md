@@ -4,7 +4,7 @@
 ![License](https://img.shields.io/github/license/edybostina/aegis)
 ![Release](https://img.shields.io/github/v/release/edybostina/aegis)
 ![Last commit](https://img.shields.io/github/last-commit/edybostina/aegis)
-![Platforms](https://img.shields.io/badge/platform-linux%20%7C%20macOS-lightgrey)
+![Platforms](https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20windows-lightgrey)
 
 An easy-to-use file encryption tool using modern AEAD algorithms.
 
@@ -14,7 +14,7 @@ An easy-to-use file encryption tool using modern AEAD algorithms.
 - Support for both passphrase-based and keyfile-based encryption.
 - Optional compression before encryption to save space.
 - Recursive directory processing for batch encryption/decryption.
-- Cross-platform support (Linux, macOS, and Windows in the near future).
+- Cross-platform support (Linux, macOS, and Windows).
 - Simple command-line interface for ease of use.
 - Open-source and auditable codebase.
 
